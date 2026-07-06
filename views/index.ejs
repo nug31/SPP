@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal SPP - Kelas X TKR 2</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-shape"></div>
+    <div class="container">
+        <div class="card glass">
+            <div class="header">
+                <h1>Portal Pembayaran SPP</h1>
+                <p>Kelas X TKR 2 - Rp 700.000 / Bulan</p>
+            </div>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-danger"><%= error %></div>
+            <% } %>
+
+            <% if (typeof req !== 'undefined' && req.query && req.query.success) { %>
+                <div class="alert alert-success">Bukti pembayaran berhasil diunggah dan sedang menunggu konfirmasi admin.</div>
+            <% } %>
+
+            <div class="search-section">
+                <form action="/" method="GET" class="search-form">
+                    <input type="text" name="nis" placeholder="Masukkan NIS Siswa..." required value="<%= student ? student.nis : '' %>">
+                    <button type="submit" class="btn btn-primary">Cek Tagihan</button>
+                </form>
+            </div>
+
+            <% if (student) { %>
+                <div class="student-info fade-in">
+                    <h3>Data Siswa</h3>
+                    <p><strong>Nama:</strong> <%= student.name %></p>
+                    <p><strong>NIS:</strong> <%= student.nis %></p>
+                    
+                    <div class="payment-status">
+                        <h4>Status Bulan Ini (<%= currentMonth %>/<%= currentYear %>)</h4>
+                        <% if (!payment) { %>
+                            <span class="badge badge-danger">Belum Dibayar</span>
+                            
+                            <form action="/upload-proof" method="POST" enctype="multipart/form-data" class="upload-form">
+                                <input type="hidden" name="student_id" value="<%= student.id %>">
+                                <input type="hidden" name="month" value="<%= currentMonth %>">
+                                <input type="hidden" name="year" value="<%= currentYear %>">
+                                
+                                <div class="form-group">
+                                    <label for="proof">Unggah Bukti Transfer (Foto/PDF)</label>
+                                    <input type="file" name="proof" id="proof" accept="image/*,.pdf" required>
+                                </div>
+                                <button type="submit" class="btn btn-success">Kirim Bukti Pembayaran</button>
+                            </form>
+                        <% } else if (payment.status === 'pending') { %>
+                            <span class="badge badge-warning">Menunggu Konfirmasi</span>
+                            <p class="status-msg">Terima kasih, bukti Anda telah kami terima dan sedang diverifikasi.</p>
+                        <% } else if (payment.status === 'lunas') { %>
+                            <span class="badge badge-success">Lunas</span>
+                            <p class="status-msg">Terima kasih, pembayaran SPP bulan ini telah lunas.</p>
+                        <% } %>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</body>
+</html>

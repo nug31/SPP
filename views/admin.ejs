@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - SPP X TKR 2</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <div class="admin-container">
+        <aside class="sidebar glass">
+            <h2>Admin SPP</h2>
+            <ul>
+                <li><a href="#dashboard">Dashboard</a></li>
+                <li><a href="#students">Data Siswa</a></li>
+                <li><a href="#payments">Pembayaran</a></li>
+            </ul>
+        </aside>
+        
+        <main class="content">
+            <h1 class="page-title">Dashboard Pembayaran SPP</h1>
+            
+            <section id="students" class="card glass">
+                <h2>Import Data Siswa (Excel)</h2>
+                <p>Format kolom Excel: <strong>nis</strong>, <strong>name</strong>, <strong>parent_wa</strong> (contoh: 08123456789)</p>
+                <form action="/admin/import" method="POST" enctype="multipart/form-data" class="flex-form">
+                    <input type="file" name="excel" accept=".xlsx, .xls" required>
+                    <button type="submit" class="btn btn-primary">Import Excel</button>
+                </form>
+
+                <h3 style="margin-top: 2rem;">Daftar Siswa</h3>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>NIS</th>
+                                <th>Nama</th>
+                                <th>No WA Wali</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% students.forEach(s => { %>
+                                <tr>
+                                    <td><%= s.nis %></td>
+                                    <td><%= s.name %></td>
+                                    <td><%= s.parent_wa %></td>
+                                    <td>
+                                        <form action="/admin/delete-student/<%= s.id %>" method="POST" onsubmit="return confirm('Yakin hapus siswa ini?');">
+                                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                            <% if(students.length === 0) { %>
+                                <tr><td colspan="4" style="text-align: center;">Belum ada data siswa.</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="payments" class="card glass" style="margin-top: 2rem;">
+                <h2>Daftar Bukti Pembayaran</h2>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Siswa (NIS)</th>
+                                <th>Periode</th>
+                                <th>Status</th>
+                                <th>Bukti</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% payments.forEach(p => { %>
+                                <tr>
+                                    <td><%= new Date(p.created_at).toLocaleString('id-ID') %></td>
+                                    <td><%= p.name %> (<%= p.nis %>)</td>
+                                    <td><%= p.month %>/<%= p.year %></td>
+                                    <td>
+                                        <% if (p.status === 'pending') { %>
+                                            <span class="badge badge-warning">Menunggu</span>
+                                        <% } else { %>
+                                            <span class="badge badge-success">Lunas</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <a href="/uploads/<%= p.proof_file %>" target="_blank" class="link-btn">Lihat Bukti</a>
+                                    </td>
+                                    <td>
+                                        <% if (p.status === 'pending') { %>
+                                            <form action="/admin/confirm/<%= p.id %>" method="POST">
+                                                <button type="submit" class="btn btn-success btn-sm">Konfirmasi Lunas</button>
+                                            </form>
+                                        <% } else { %>
+                                            -
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                            <% if(payments.length === 0) { %>
+                                <tr><td colspan="6" style="text-align: center;">Belum ada pembayaran.</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
