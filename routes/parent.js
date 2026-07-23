@@ -151,9 +151,9 @@ router.get('/download-pdf/:payment_id', async (req, res) => {
 
     // Header
     doc.font('Helvetica-Bold').fontSize(18).fillColor('#1e293b')
-        .text('PORTAL SPP', { align: 'center' });
+        .text('SatuSPP', { align: 'center' });
     doc.font('Helvetica').fontSize(11).fillColor('#64748b')
-        .text('Sistem Pembayaran SPP Sekolah', { align: 'center' });
+        .text('Sistem Informasi Pembayaran SPP Sekolah', { align: 'center' });
 
     doc.moveTo(40, 100).lineTo(555, 100).strokeColor('#4F46E5').lineWidth(2).stroke();
 

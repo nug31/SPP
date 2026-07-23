@@ -86,7 +86,7 @@ app.use((req, res) => {
 cronScheduler.start();
 
 server.listen(port, () => {
-    console.log(`\n🚀 SPP Portal running at http://localhost:${port}`);
+    console.log(`\n🚀 SatuSPP running at http://localhost:${port}`);
     console.log(`   Admin  : http://localhost:${port}/admin`);
     console.log(`   Login  : http://localhost:${port}/login\n`);
 });

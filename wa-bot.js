@@ -62,7 +62,7 @@ const sendPaymentApproved = (number, studentName, month, year) => {
     const msg = `✅ *PEMBAYARAN SPP DIKONFIRMASI LUNAS*\n\n` +
         `Halo Bapak/Ibu Wali Murid dari *${studentName}*.\n\n` +
         `Pembayaran SPP bulan *${bulanNama[month]} ${year}* sebesar *Rp 700.000* telah kami konfirmasi *LUNAS*.\n\n` +
-        `Anda dapat mengunduh bukti lunas melalui Portal SPP Sekolah.\n\n` +
+        `Anda dapat mengunduh bukti lunas melalui Portal SatuSPP Sekolah.\n\n` +
         `Terima kasih atas kepercayaan Anda 🙏`;
     return sendMessage(number, msg);
 };
@@ -73,7 +73,7 @@ const sendPaymentRejected = (number, studentName, month, year, reason) => {
         `Halo Bapak/Ibu Wali Murid dari *${studentName}*.\n\n` +
         `Mohon maaf, bukti pembayaran SPP bulan *${bulanNama[month]} ${year}* yang Anda kirimkan *tidak dapat diterima*.\n\n` +
         `*Alasan:* ${reason || 'Bukti tidak jelas / tidak valid'}\n\n` +
-        `Mohon unggah ulang bukti transfer yang valid melalui Portal SPP Sekolah.\n\n` +
+        `Mohon unggah ulang bukti transfer yang valid melalui Portal SatuSPP Sekolah.\n\n` +
         `Jika ada pertanyaan, hubungi pihak sekolah. Terima kasih 🙏`;
     return sendMessage(number, msg);
 };
@@ -84,7 +84,7 @@ const sendPaymentReminder = (number, studentName, daysLeft) => {
         `Halo Bapak/Ibu Wali Murid dari *${studentName}*.\n\n` +
         `Pembayaran SPP bulan ini sebesar *Rp 700.000* akan jatuh tempo pada tanggal *8* ` +
         `(_${daysLeft} hari lagi_).\n\n` +
-        `Mohon segera melakukan pembayaran dan mengunggah bukti melalui Portal SPP Sekolah.\n\n` +
+        `Mohon segera melakukan pembayaran dan mengunggah bukti melalui Portal SatuSPP Sekolah.\n\n` +
         `Terima kasih 🙏`;
     return sendMessage(number, msg);
 };
