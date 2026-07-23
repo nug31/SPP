@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error — Portal SPP</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-shape"></div>
+    <div class="container" style="text-align:center;">
+        <div class="card glass">
+            <div style="font-size:64px; margin-bottom:20px;">⚠️</div>
+            <h1 style="font-size:24px; margin-bottom:12px; color: #f8fafc;">Akses Ditolak</h1>
+            <p style="color: var(--text-muted); margin-bottom:24px;"><%= message %></p>
+            <a href="/" class="btn btn-primary">Kembali ke Beranda</a>
+            <% if (user) { %>
+            <a href="/logout" class="btn btn-ghost" style="margin-left:10px;">Keluar</a>
+            <% } %>
+        </div>
+    </div>
+</body>
+</html>

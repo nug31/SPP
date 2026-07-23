@@ -3,72 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - SPP X TKR 2</title>
+    <title>Admin — Portal SPP</title>
     <link rel="stylesheet" href="/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body class="admin-body">
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
     <div class="admin-container">
+        <!-- Sidebar -->
         <aside class="sidebar glass">
-            <h2>Admin SPP</h2>
-            <ul>
-                <li><a href="#dashboard">Dashboard</a></li>
-                <li><a href="#students">Data Siswa</a></li>
-                <li><a href="#payments">Pembayaran</a></li>
-            </ul>
+            <div class="sidebar-brand">
+                <span class="sidebar-icon">🏫</span>
+                <div>
+                    <h2>Portal SPP</h2>
+                    <p class="sidebar-sub">Panel Admin</p>
+                </div>
+            </div>
+
+            <div class="sidebar-user">
+                <div class="su-avatar"><%= user.name.charAt(0).toUpperCase() %></div>
+                <div>
+                    <div class="su-name"><%= user.name %></div>
+                    <span class="role-badge role-<%= user.role %>"><%= user.role %></span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#dashboard" class="nav-link active">📊 Dashboard</a></li>
+                    <li><a href="#students" class="nav-link">👨‍🎓 Data Siswa</a></li>
+                    <li><a href="#payments" class="nav-link">💳 Pembayaran</a></li>
+                    <% if (user.role === 'admin') { %>
+                    <li><a href="/bendahara" class="nav-link">💰 Rekap Bendahara</a></li>
+                    <% } %>
+                    <li class="nav-divider"></li>
+                    <li><a href="/" target="_blank" class="nav-link">🌐 Portal Publik</a></li>
+                    <li><a href="/logout" class="nav-link nav-logout">🚪 Keluar</a></li>
+                </ul>
+            </nav>
         </aside>
-        
-        <main class="content">
-            <h1 class="page-title">Dashboard Pembayaran SPP</h1>
-            
-            <section id="students" class="card glass">
-                <h2>Import Data Siswa (Excel)</h2>
-                <p>Format kolom Excel: <strong>nis</strong>, <strong>name</strong>, <strong>parent_wa</strong> (contoh: 08123456789)</p>
-                <form action="/admin/import" method="POST" enctype="multipart/form-data" class="flex-form">
-                    <input type="file" name="excel" accept=".xlsx, .xls" required>
-                    <button type="submit" class="btn btn-primary">Import Excel</button>
+
+        <!-- Main Content -->
+        <main class="content" id="dashboard">
+            <div class="content-header">
+                <h1 class="page-title">Dashboard Pembayaran SPP</h1>
+
+                <!-- Notifikasi bell -->
+                <div class="notif-bell" id="notif-bell" onclick="toggleNotif()">
+                    🔔
+                    <% if (notifications.length > 0) { %>
+                        <span class="notif-count"><%= notifications.length %></span>
+                    <% } %>
+                    <div class="notif-dropdown" id="notif-dropdown">
+                        <div class="notif-header">Notifikasi Baru</div>
+                        <% if (notifications.length === 0) { %>
+                            <div class="notif-empty">Tidak ada notifikasi baru</div>
+                        <% } %>
+                        <% notifications.forEach(n => { %>
+                            <div class="notif-item">
+                                <span class="notif-icon"><%= n.type === 'upload' ? '📤' : (n.type === 'approved' ? '✅' : '❌') %></span>
+                                <div>
+                                    <div class="notif-msg"><%= n.message %></div>
+                                    <div class="notif-time"><%= new Date(n.created_at).toLocaleString('id-ID') %></div>
+                                </div>
+                            </div>
+                        <% }) %>
+                        <button class="btn-mark-read" onclick="markRead()">Tandai semua dibaca</button>
+                    </div>
+                </div>
+            </div>
+
+            <% if (success) { %>
+                <div class="alert alert-success">
+                    <% if (success === 'imported') { %>✅ Data siswa berhasil diimport!
+                    <% } else if (success === 'wa_sent') { %>📨 Pesan WhatsApp berhasil dikirim!
+                    <% } else if (success === 'added') { %>✅ Siswa berhasil ditambahkan!
+                    <% } else { %><%= success %><% } %>
+                </div>
+            <% } %>
+            <% if (error) { %>
+                <div class="alert alert-danger">
+                    <% if (error === 'nofile') { %>⚠️ File Excel tidak ditemukan.
+                    <% } else if (error === 'emptydata') { %>⚠️ Data Excel kosong atau format salah.
+                    <% } else { %><%= error %><% } %>
+                </div>
+            <% } %>
+
+            <!-- Statistik Cards -->
+            <div class="stats-grid" id="dashboard">
+                <div class="stat-card stat-blue">
+                    <div class="stat-icon">👨‍🎓</div>
+                    <div class="stat-info">
+                        <div class="stat-num"><%= stats.totalSiswa %></div>
+                        <div class="stat-label">Total Siswa</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-green">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <div class="stat-num"><%= stats.lunasCount %></div>
+                        <div class="stat-label">Lunas Bulan Ini</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-yellow">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-info">
+                        <div class="stat-num"><%= stats.pendingCount %></div>
+                        <div class="stat-label">Menunggu Verifikasi</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-red">
+                    <div class="stat-icon">❌</div>
+                    <div class="stat-info">
+                        <div class="stat-num"><%= stats.belumCount %></div>
+                        <div class="stat-label">Belum Bayar</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-purple">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <div class="stat-num">Rp <%= (stats.lunasCount * 700000).toLocaleString('id-ID') %></div>
+                        <div class="stat-label">Terkumpul Bulan Ini</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Siswa -->
+            <section id="students" class="card glass section-card">
+                <div class="section-header">
+                    <h2>👨‍🎓 Data Siswa</h2>
+                    <% if (user.role === 'admin') { %>
+                    <button class="btn btn-primary btn-sm" onclick="toggleAddStudent()">+ Tambah Siswa</button>
+                    <% } %>
+                </div>
+
+                <!-- Form Tambah Siswa Manual -->
+                <div id="add-student-form" style="display:none;" class="inline-form glass-inner">
+                    <h4>Tambah Siswa Manual</h4>
+                    <form action="/admin/add-student" method="POST" class="flex-form-grid">
+                        <div class="form-group"><label>NISN</label><input type="text" name="nisn" required placeholder="NISN"></div>
+                        <div class="form-group"><label>Nama</label><input type="text" name="name" required placeholder="Nama Lengkap"></div>
+                        <div class="form-group"><label>No WA</label><input type="text" name="parent_wa" required placeholder="08xxxxxxxxxx"></div>
+                        <div class="form-group"><label>Kelas</label>
+                            <select name="kelas" class="form-select">
+                                <% kelasList.forEach(k => { %><option value="<%= k %>"><%= k %></option><% }) %>
+                                <option value="X TKR 2">X TKR 2</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success">Simpan</button>
+                    </form>
+                </div>
+
+                <!-- Import Excel -->
+                <% if (user.role === 'admin') { %>
+                <details class="import-details">
+                    <summary>📥 Import Excel</summary>
+                    <p class="import-hint">Format kolom: <strong>nisn</strong>, <strong>name</strong>, <strong>parent_wa</strong>, <strong>kelas</strong></p>
+                    <form action="/admin/import" method="POST" enctype="multipart/form-data" class="flex-form">
+                        <input type="file" name="excel" accept=".xlsx, .xls" required>
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    </form>
+                </details>
+                <% } %>
+
+                <!-- Pencarian Siswa -->
+                <form action="/admin" method="GET" class="filter-bar" id="filter-form">
+                    <div class="filter-group">
+                        <input type="text" name="search" id="search-input" placeholder="🔍 Cari nama atau NISN..." value="<%= filters.search %>">
+                    </div>
+                    <div class="filter-group">
+                        <select name="kelas" class="form-select" id="kelas-select">
+                            <option value="">Semua Kelas</option>
+                            <% kelasList.forEach(k => { %>
+                                <option value="<%= k %>" <%= filters.kelas === k ? 'selected' : '' %>><%= k %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                    <a href="/admin" class="btn btn-ghost btn-sm">Reset</a>
                 </form>
 
-                <h3 style="margin-top: 2rem;">Daftar Siswa</h3>
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="data-table" id="students-table">
                         <thead>
                             <tr>
-                                <th>NIS</th>
+                                <th>#</th>
+                                <th>NISN</th>
                                 <th>Nama</th>
-                                <th>No WA Wali</th>
+                                <th>Kelas</th>
+                                <th>No WA</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <% students.forEach(s => { %>
+                            <% students.forEach((s, i) => { %>
                                 <tr>
-                                    <td><%= s.nis %></td>
-                                    <td><%= s.name %></td>
+                                    <td><%= i + 1 %></td>
+                                    <td><code><%= s.nisn || s.nis %></code></td>
+                                    <td><strong><%= s.name %></strong></td>
+                                    <td><span class="kelas-badge"><%= s.kelas || 'X TKR 2' %></span></td>
                                     <td><%= s.parent_wa %></td>
-                                    <td>
-                                        <form action="/admin/delete-student/<%= s.id %>" method="POST" onsubmit="return confirm('Yakin hapus siswa ini?');">
-                                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                                    <td class="action-cell">
+                                        <form action="/admin/wa-remind/<%= s.id %>" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-wa btn-sm" title="Kirim Reminder WA">📨 WA</button>
                                         </form>
+                                        <% if (user.role === 'admin') { %>
+                                        <form action="/admin/delete-student/<%= s.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Yakin hapus siswa <%= s.name %>?');">
+                                            <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                                        </form>
+                                        <% } %>
                                     </td>
                                 </tr>
                             <% }) %>
                             <% if(students.length === 0) { %>
-                                <tr><td colspan="4" style="text-align: center;">Belum ada data siswa.</td></tr>
+                                <tr><td colspan="6" class="empty-row">Tidak ada data siswa ditemukan.</td></tr>
                             <% } %>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <section id="payments" class="card glass" style="margin-top: 2rem;">
-                <h2>Daftar Bukti Pembayaran</h2>
+            <!-- Pembayaran -->
+            <section id="payments" class="card glass section-card">
+                <div class="section-header">
+                    <h2>💳 Daftar Pembayaran</h2>
+                </div>
+
+                <!-- Filter Pembayaran -->
+                <form action="/admin" method="GET" class="filter-bar">
+                    <input type="hidden" name="search" value="<%= filters.search %>">
+                    <input type="hidden" name="kelas" value="<%= filters.kelas %>">
+                    <div class="filter-group">
+                        <select name="bulan" class="form-select">
+                            <option value="">Semua Bulan</option>
+                            <% ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'].forEach((b, i) => { %>
+                                <option value="<%= i+1 %>" <%= filters.bulan == (i+1) ? 'selected' : '' %>><%= b %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select name="status" class="form-select">
+                            <option value="">Semua Status</option>
+                            <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Menunggu</option>
+                            <option value="lunas" <%= filters.status === 'lunas' ? 'selected' : '' %>>Lunas</option>
+                            <option value="ditolak" <%= filters.status === 'ditolak' ? 'selected' : '' %>>Ditolak</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                    <a href="/admin" class="btn btn-ghost btn-sm">Reset</a>
+                </form>
+
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Waktu</th>
-                                <th>Siswa (NIS)</th>
+                                <th>Waktu Upload</th>
+                                <th>Siswa</th>
+                                <th>Kelas</th>
                                 <th>Periode</th>
                                 <th>Status</th>
                                 <th>Bukti</th>
@@ -77,33 +270,45 @@
                         </thead>
                         <tbody>
                             <% payments.forEach(p => { %>
-                                <tr>
-                                    <td><%= new Date(p.created_at).toLocaleString('id-ID') %></td>
-                                    <td><%= p.name %> (<%= p.nis %>)</td>
+                                <tr class="<%= p.status === 'pending' ? 'row-pending' : '' %>">
+                                    <td class="td-date"><%= new Date(p.created_at).toLocaleString('id-ID', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) %></td>
+                                    <td>
+                                        <div class="student-cell">
+                                            <strong><%= p.name %></strong>
+                                            <small><%= p.nisn || p.nis %></small>
+                                        </div>
+                                    </td>
+                                    <td><span class="kelas-badge"><%= p.kelas %></span></td>
                                     <td><%= p.month %>/<%= p.year %></td>
                                     <td>
                                         <% if (p.status === 'pending') { %>
-                                            <span class="badge badge-warning">Menunggu</span>
-                                        <% } else { %>
-                                            <span class="badge badge-success">Lunas</span>
+                                            <span class="badge badge-warning">⏳ Menunggu</span>
+                                        <% if (p.status === 'lunas') { %>
+                                        <% } else if (p.status === 'lunas') { %>
+                                            <span class="badge badge-success">✅ Lunas</span>
+                                        <% } else if (p.status === 'ditolak') { %>
+                                            <span class="badge badge-danger">❌ Ditolak</span>
                                         <% } %>
                                     </td>
                                     <td>
-                                        <a href="/uploads/<%= p.proof_file %>" target="_blank" class="link-btn">Lihat Bukti</a>
+                                        <a href="/uploads/<%= p.proof_file %>" target="_blank" class="link-btn">🖼️ Lihat</a>
                                     </td>
-                                    <td>
+                                    <td class="action-cell">
                                         <% if (p.status === 'pending') { %>
-                                            <form action="/admin/confirm/<%= p.id %>" method="POST">
-                                                <button type="submit" class="btn btn-success btn-sm">Konfirmasi Lunas</button>
+                                            <form action="/admin/confirm/<%= p.id %>" method="POST" style="display:inline;">
+                                                <button type="submit" class="btn btn-success btn-sm">✅ Lunas</button>
                                             </form>
+                                            <button class="btn btn-danger btn-sm" onclick="openReject('<%= p.id %>', '<%= p.name %>')">❌ Tolak</button>
+                                        <% } else if (p.status === 'lunas') { %>
+                                            <a href="/download-pdf/<%= p.id %>" class="btn btn-download btn-sm">📄 PDF</a>
                                         <% } else { %>
-                                            -
+                                            <span class="td-dash">—</span>
                                         <% } %>
                                     </td>
                                 </tr>
                             <% }) %>
                             <% if(payments.length === 0) { %>
-                                <tr><td colspan="6" style="text-align: center;">Belum ada pembayaran.</td></tr>
+                                <tr><td colspan="7" class="empty-row">Tidak ada data pembayaran.</td></tr>
                             <% } %>
                         </tbody>
                     </table>
@@ -111,5 +316,81 @@
             </section>
         </main>
     </div>
+
+    <!-- Modal Tolak -->
+    <div id="reject-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card glass">
+            <h3>❌ Tolak Pembayaran</h3>
+            <p id="reject-student-name" class="modal-sub"></p>
+            <form id="reject-form" method="POST">
+                <div class="form-group">
+                    <label>Alasan Penolakan</label>
+                    <textarea name="reason" rows="3" placeholder="Contoh: Bukti transfer tidak jelas / nominal tidak sesuai..." class="form-textarea" required></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-danger">Tolak</button>
+                    <button type="button" class="btn btn-ghost" onclick="closeReject()">Batal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        socket.emit('join_admin');
+
+        // Notifikasi upload baru
+        socket.on('new_upload', (data) => {
+            showToast(`📤 ${data.student_name} (${data.student_nisn || data.student_nis}) mengunggah bukti SPP ${data.month}/${data.year}`, 'info');
+            // Update badge notifikasi
+            const badge = document.querySelector('.notif-count');
+            if (badge) badge.textContent = parseInt(badge.textContent || 0) + 1;
+        });
+
+        // Modal tolak
+        function openReject(paymentId, studentName) {
+            document.getElementById('reject-form').action = '/admin/reject/' + paymentId;
+            document.getElementById('reject-student-name').textContent = 'Siswa: ' + studentName;
+            document.getElementById('reject-modal').style.display = 'flex';
+        }
+        function closeReject() {
+            document.getElementById('reject-modal').style.display = 'none';
+        }
+
+        // Notif dropdown
+        function toggleNotif() {
+            const dd = document.getElementById('notif-dropdown');
+            dd.classList.toggle('show');
+        }
+        function markRead() {
+            fetch('/admin/notif-read', { method: 'POST' }).then(() => {
+                const badge = document.querySelector('.notif-count');
+                if (badge) badge.remove();
+                document.getElementById('notif-dropdown').classList.remove('show');
+            });
+        }
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#notif-bell')) {
+                document.getElementById('notif-dropdown').classList.remove('show');
+            }
+        });
+
+        // Toggle tambah siswa
+        function toggleAddStudent() {
+            const f = document.getElementById('add-student-form');
+            f.style.display = f.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showToast(message, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 6000);
+        }
+    </script>
 </body>
 </html>

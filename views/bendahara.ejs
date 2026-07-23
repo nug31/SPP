@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bendahara — Portal SPP</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <div class="admin-container">
+        <aside class="sidebar glass">
+            <div class="sidebar-brand">
+                <span class="sidebar-icon">🏫</span>
+                <div><h2>Portal SPP</h2><p class="sidebar-sub">Bendahara</p></div>
+            </div>
+            <div class="sidebar-user">
+                <div class="su-avatar"><%= user.name.charAt(0).toUpperCase() %></div>
+                <div>
+                    <div class="su-name"><%= user.name %></div>
+                    <span class="role-badge role-<%= user.role %>"><%= user.role %></span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="/admin" class="nav-link">📊 Dashboard Admin</a></li>
+                    <li><a href="/bendahara" class="nav-link active">💰 Rekap Keuangan</a></li>
+                    <li class="nav-divider"></li>
+                    <li><a href="/logout" class="nav-link nav-logout">🚪 Keluar</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="content-header">
+                <h1 class="page-title">💰 Rekap Keuangan SPP</h1>
+                <form action="/bendahara" method="GET" class="year-picker">
+                    <label>Tahun:</label>
+                    <select name="tahun" class="form-select" onchange="this.form.submit()">
+                        <% for (let y = new Date().getFullYear(); y >= new Date().getFullYear() - 3; y--) { %>
+                            <option value="<%= y %>" <%= year === y ? 'selected' : '' %>><%= y %></option>
+                        <% } %>
+                    </select>
+                </form>
+            </div>
+
+            <!-- Summary cards -->
+            <div class="stats-grid">
+                <div class="stat-card stat-purple">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <div class="stat-num">Rp <%= totalTerkumpul.toLocaleString('id-ID') %></div>
+                        <div class="stat-label">Total Terkumpul Tahun <%= year %></div>
+                    </div>
+                </div>
+                <div class="stat-card stat-blue">
+                    <div class="stat-icon">👨‍🎓</div>
+                    <div class="stat-info">
+                        <div class="stat-num"><%= totalSiswa %></div>
+                        <div class="stat-label">Total Siswa</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-green">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-info">
+                        <div class="stat-num"><%= payments.length %></div>
+                        <div class="stat-label">Pembayaran Lunas</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rekap per bulan -->
+            <section class="card glass section-card">
+                <h2>📅 Rekap Per Bulan — <%= year %></h2>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Bulan</th><th>Jumlah Lunas</th><th>Total Nominal</th><th>Progress</th></tr>
+                        </thead>
+                        <tbody>
+                            <% rekapBulan.forEach(r => { %>
+                            <tr>
+                                <td><strong><%= r.bulan %></strong></td>
+                                <td><%= r.lunas %> / <%= totalSiswa %> siswa</td>
+                                <td>Rp <%= r.nominal.toLocaleString('id-ID') %></td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: <%= totalSiswa > 0 ? Math.round((r.lunas / totalSiswa) * 100) : 0 %>%"></div>
+                                    </div>
+                                    <small><%= totalSiswa > 0 ? Math.round((r.lunas / totalSiswa) * 100) : 0 %>%</small>
+                                </td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Rekap per kelas -->
+            <section class="card glass section-card">
+                <h2>🏫 Rekap Per Kelas</h2>
+                <div class="kelas-grid">
+                    <% Object.entries(kelasMap).forEach(([k, v]) => { %>
+                    <div class="kelas-card glass-inner">
+                        <div class="kelas-name"><%= k %></div>
+                        <div class="kelas-stats">
+                            <span class="badge badge-success"><%= v.lunas %> Lunas</span>
+                            <span class="badge badge-danger"><%= v.total - v.lunas %> Belum</span>
+                        </div>
+                        <div class="progress-bar" style="margin-top: 10px;">
+                            <div class="progress-fill" style="width: <%= v.total > 0 ? Math.round((v.lunas / v.total) * 100) : 0 %>%"></div>
+                        </div>
+                        <small><%= v.total > 0 ? Math.round((v.lunas / v.total) * 100) : 0 %>% terkumpul</small>
+                    </div>
+                    <% }) %>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

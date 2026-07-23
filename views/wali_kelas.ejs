@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wali Kelas — Portal SPP</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <div class="admin-container">
+        <aside class="sidebar glass">
+            <div class="sidebar-brand">
+                <span class="sidebar-icon">🏫</span>
+                <div><h2>Portal SPP</h2><p class="sidebar-sub">Wali Kelas</p></div>
+            </div>
+            <div class="sidebar-user">
+                <div class="su-avatar"><%= user.name.charAt(0).toUpperCase() %></div>
+                <div>
+                    <div class="su-name"><%= user.name %></div>
+                    <span class="role-badge role-wali_kelas">Wali Kelas</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="/wali-kelas" class="nav-link active">📋 Status Kelas</a></li>
+                    <li class="nav-divider"></li>
+                    <li><a href="/logout" class="nav-link nav-logout">🚪 Keluar</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="content-header">
+                <h1 class="page-title">📋 Status Pembayaran Kelas <%= user.kelas || '' %></h1>
+                <form action="/wali-kelas" method="GET" class="year-picker">
+                    <select name="bulan" class="form-select" onchange="this.form.submit()">
+                        <% ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'].forEach((b, i) => { %>
+                            <option value="<%= i+1 %>" <%= currentMonth === (i+1) ? 'selected' : '' %>><%= b %></option>
+                        <% }) %>
+                    </select>
+                    <select name="tahun" class="form-select" onchange="this.form.submit()">
+                        <% for (let y = new Date().getFullYear(); y >= new Date().getFullYear() - 2; y--) { %>
+                            <option value="<%= y %>" <%= currentYear === y ? 'selected' : '' %>><%= y %></option>
+                        <% } %>
+                    </select>
+                </form>
+            </div>
+
+            <!-- Statistik -->
+            <div class="stats-grid">
+                <div class="stat-card stat-blue">
+                    <div class="stat-icon">👨‍🎓</div>
+                    <div class="stat-info"><div class="stat-num"><%= stats.total %></div><div class="stat-label">Total Siswa</div></div>
+                </div>
+                <div class="stat-card stat-green">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info"><div class="stat-num"><%= stats.lunas %></div><div class="stat-label">Sudah Lunas</div></div>
+                </div>
+                <div class="stat-card stat-yellow">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-info"><div class="stat-num"><%= stats.pending %></div><div class="stat-label">Menunggu Verifikasi</div></div>
+                </div>
+                <div class="stat-card stat-red">
+                    <div class="stat-icon">❌</div>
+                    <div class="stat-info"><div class="stat-num"><%= stats.belum %></div><div class="stat-label">Belum Bayar</div></div>
+                </div>
+            </div>
+
+            <section class="card glass section-card">
+                <h2>📋 Daftar Siswa — Bulan <%= currentMonth %>/<%= currentYear %></h2>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>#</th><th>NISN</th><th>Nama</th><th>Status Pembayaran</th><th>Tanggal Upload</th></tr>
+                        </thead>
+                        <tbody>
+                            <% studentStatus.forEach((s, i) => { %>
+                            <tr>
+                                <td><%= i + 1 %></td>
+                                <td><code><%= s.nisn || s.nis %></code></td>
+                                <td><strong><%= s.name %></strong></td>
+                                <td>
+                                    <% if (!s.payment) { %>
+                                        <span class="badge badge-danger">Belum Bayar</span>
+                                    <% } else if (s.payment.status === 'pending') { %>
+                                        <span class="badge badge-warning">⏳ Menunggu Verifikasi</span>
+                                    <% } else if (s.payment.status === 'lunas') { %>
+                                        <span class="badge badge-success">✅ Lunas</span>
+                                    <% } else if (s.payment.status === 'ditolak') { %>
+                                        <span class="badge badge-danger">❌ Ditolak</span>
+                                    <% } %>
+                                </td>
+                                <td class="td-date">
+                                    <%= s.payment ? new Date(s.payment.created_at).toLocaleDateString('id-ID') : '—' %>
+                                </td>
+                            </tr>
+                            <% }) %>
+                            <% if (studentStatus.length === 0) { %>
+                                <tr><td colspan="5" class="empty-row">Tidak ada data siswa.</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

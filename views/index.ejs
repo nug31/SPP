@@ -3,67 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal SPP - Kelas X TKR 2</title>
+    <title>Portal SPP — Kelas X TKR 2</title>
+    <meta name="description" content="Portal cek dan pembayaran SPP online. Cek status tagihan, unggah bukti transfer, dan unduh bukti lunas.">
     <link rel="stylesheet" href="/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="background-shape"></div>
+
+    <!-- Notifikasi real-time toast -->
+    <div id="toast-container"></div>
+
     <div class="container">
+        <!-- Nav bar kecil jika sudah login -->
+        <% if (user) { %>
+        <div class="top-nav glass-mini">
+            <span>👤 <%= user.name %> <span class="role-badge role-<%= user.role %>"><%= user.role %></span></span>
+            <a href="/logout" class="nav-logout">Keluar</a>
+        </div>
+        <% } %>
+
         <div class="card glass">
             <div class="header">
                 <h1>Portal Pembayaran SPP</h1>
-                <p>Kelas X TKR 2 - Rp 700.000 / Bulan</p>
+                <p>Kelas X TKR 2 — Rp 700.000 / Bulan</p>
+            </div>
+
+            <!-- Countdown ke tanggal 8 -->
+            <div class="countdown-widget" id="countdown-widget">
+                <div class="countdown-label">⏳ Jatuh Tempo Pembayaran</div>
+                <div class="countdown-blocks">
+                    <div class="cd-block"><span id="cd-days">--</span><small>Hari</small></div>
+                    <div class="cd-sep">:</div>
+                    <div class="cd-block"><span id="cd-hours">--</span><small>Jam</small></div>
+                    <div class="cd-sep">:</div>
+                    <div class="cd-block"><span id="cd-mins">--</span><small>Menit</small></div>
+                    <div class="cd-sep">:</div>
+                    <div class="cd-block"><span id="cd-secs">--</span><small>Detik</small></div>
+                </div>
+                <div class="countdown-date" id="countdown-date"></div>
             </div>
 
             <% if (typeof error !== 'undefined' && error) { %>
                 <div class="alert alert-danger"><%= error %></div>
             <% } %>
-
-            <% if (typeof req !== 'undefined' && req.query && req.query.success) { %>
-                <div class="alert alert-success">Bukti pembayaran berhasil diunggah dan sedang menunggu konfirmasi admin.</div>
+            <% if (success) { %>
+                <div class="alert alert-success">✅ Bukti pembayaran berhasil diunggah dan sedang menunggu konfirmasi admin.</div>
             <% } %>
 
             <div class="search-section">
-                <form action="/" method="GET" class="search-form">
-                    <input type="text" name="nis" placeholder="Masukkan NIS Siswa..." required value="<%= student ? student.nis : '' %>">
-                    <button type="submit" class="btn btn-primary">Cek Tagihan</button>
+                <form action="/" method="GET" class="search-form" id="search-form">
+                    <input type="text" name="nisn" id="nisn-input" placeholder="Masukkan NISN Siswa..." required value="<%= student ? (student.nisn || student.nis) : '' %>">
+                    <button type="submit" class="btn btn-primary" id="cek-btn">Cek Tagihan</button>
                 </form>
             </div>
 
             <% if (student) { %>
-                <div class="student-info fade-in">
-                    <h3>Data Siswa</h3>
-                    <p><strong>Nama:</strong> <%= student.name %></p>
-                    <p><strong>NIS:</strong> <%= student.nis %></p>
-                    
+                <div class="student-info fade-in" id="student-card">
+                    <h3>📋 Data Siswa</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Nama</span>
+                            <span class="info-val"><%= student.name %></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">NISN</span>
+                            <span class="info-val"><%= student.nisn || student.nis %></span>
+                        </div>
+                        <% if (student.kelas) { %>
+                        <div class="info-item">
+                            <span class="info-label">Kelas</span>
+                            <span class="info-val"><%= student.kelas %></span>
+                        </div>
+                        <% } %>
+                    </div>
+
                     <div class="payment-status">
                         <h4>Status Bulan Ini (<%= currentMonth %>/<%= currentYear %>)</h4>
+
                         <% if (!payment) { %>
                             <span class="badge badge-danger">Belum Dibayar</span>
-                            
+                            <form action="/upload-proof" method="POST" enctype="multipart/form-data" class="upload-form" id="upload-form">
+                                <input type="hidden" name="student_id" value="<%= student.id %>">
+                                <input type="hidden" name="month" value="<%= currentMonth %>">
+                                <input type="hidden" name="year" value="<%= currentYear %>">
+                                <input type="hidden" name="nisn" value="<%= student.nisn || student.nis %>">
+                                <div class="form-group">
+                                    <label for="proof">📎 Unggah Bukti Transfer (Foto/PDF)</label>
+                                    <div class="file-drop-zone" id="drop-zone">
+                                        <input type="file" name="proof" id="proof" accept="image/*,.pdf" required>
+                                        <div class="drop-label">
+                                            <span class="drop-icon">☁️</span>
+                                            <span id="file-name-display">Klik atau seret file ke sini</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-success" id="upload-btn">Kirim Bukti Pembayaran</button>
+                            </form>
+                        <% } else if (payment.status === 'pending') { %>
+                            <span class="badge badge-warning">⏳ Menunggu Konfirmasi</span>
+                            <p class="status-msg">Terima kasih, bukti Anda telah kami terima dan sedang diverifikasi oleh admin.</p>
+                        <% } else if (payment.status === 'lunas') { %>
+                            <span class="badge badge-success">✅ Lunas</span>
+                            <p class="status-msg">Terima kasih, pembayaran SPP bulan ini telah lunas.</p>
+                            <a href="/download-pdf/<%= payment.id %>" class="btn btn-download" id="download-pdf-btn">
+                                📄 Unduh Bukti Lunas (PDF)
+                            </a>
+                        <% } else if (payment.status === 'ditolak') { %>
+                            <span class="badge badge-danger">❌ Ditolak</span>
+                            <p class="status-msg">Bukti pembayaran Anda ditolak. Silakan unggah ulang bukti yang valid.</p>
                             <form action="/upload-proof" method="POST" enctype="multipart/form-data" class="upload-form">
                                 <input type="hidden" name="student_id" value="<%= student.id %>">
                                 <input type="hidden" name="month" value="<%= currentMonth %>">
                                 <input type="hidden" name="year" value="<%= currentYear %>">
-                                
+                                <input type="hidden" name="nisn" value="<%= student.nisn || student.nis %>">
                                 <div class="form-group">
-                                    <label for="proof">Unggah Bukti Transfer (Foto/PDF)</label>
-                                    <input type="file" name="proof" id="proof" accept="image/*,.pdf" required>
+                                    <label for="proof2">📎 Unggah Ulang Bukti Transfer</label>
+                                    <input type="file" name="proof" id="proof2" accept="image/*,.pdf" required>
                                 </div>
-                                <button type="submit" class="btn btn-success">Kirim Bukti Pembayaran</button>
+                                <button type="submit" class="btn btn-success">Kirim Ulang Bukti</button>
                             </form>
-                        <% } else if (payment.status === 'pending') { %>
-                            <span class="badge badge-warning">Menunggu Konfirmasi</span>
-                            <p class="status-msg">Terima kasih, bukti Anda telah kami terima dan sedang diverifikasi.</p>
-                        <% } else if (payment.status === 'lunas') { %>
-                            <span class="badge badge-success">Lunas</span>
-                            <p class="status-msg">Terima kasih, pembayaran SPP bulan ini telah lunas.</p>
                         <% } %>
                     </div>
+
+                    <!-- Riwayat Pembayaran -->
+                    <% if (payments && payments.length > 0) { %>
+                    <div class="history-section">
+                        <h4>📚 Riwayat Pembayaran</h4>
+                        <div class="history-list">
+                            <% const bulanNama = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']; %>
+                            <% payments.forEach(p => { %>
+                            <div class="history-item">
+                                <div class="history-left">
+                                    <span class="history-period"><%= bulanNama[p.month] %> <%= p.year %></span>
+                                    <span class="history-date">Diunggah: <%= new Date(p.created_at).toLocaleDateString('id-ID') %></span>
+                                </div>
+                                <div class="history-right">
+                                    <% if (p.status === 'lunas') { %>
+                                        <span class="badge badge-success">Lunas</span>
+                                        <a href="/download-pdf/<%= p.id %>" class="link-sm">📄 PDF</a>
+                                    <% } else if (p.status === 'pending') { %>
+                                        <span class="badge badge-warning">Pending</span>
+                                    <% } else if (p.status === 'ditolak') { %>
+                                        <span class="badge badge-danger">Ditolak</span>
+                                    <% } %>
+                                    <a href="/uploads/<%= p.proof_file %>" target="_blank" class="link-sm">🖼️ Lihat</a>
+                                </div>
+                            </div>
+                            <% }) %>
+                        </div>
+                    </div>
+                    <% } %>
                 </div>
             <% } %>
         </div>
+
+        <div class="footer-links">
+            <a href="/login">Login sebagai Staff</a>
+        </div>
     </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // ===== Countdown ke tanggal 8 =====
+        function updateCountdown() {
+            const now = new Date();
+            let target = new Date(now.getFullYear(), now.getMonth(), 8, 23, 59, 59);
+            if (now.getDate() > 8) {
+                const nextMonth = now.getMonth() + 1;
+                target = new Date(now.getFullYear(), nextMonth, 8, 23, 59, 59);
+            }
+
+            const diff = target - now;
+            if (diff <= 0) {
+                document.getElementById('countdown-date').textContent = 'Hari ini jatuh tempo!';
+                return;
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById('cd-days').textContent = String(days).padStart(2, '0');
+            document.getElementById('cd-hours').textContent = String(hours).padStart(2, '0');
+            document.getElementById('cd-mins').textContent = String(mins).padStart(2, '0');
+            document.getElementById('cd-secs').textContent = String(secs).padStart(2, '0');
+
+            const opts = { day: 'numeric', month: 'long', year: 'numeric' };
+            document.getElementById('countdown-date').textContent =
+                'Jatuh tempo: ' + target.toLocaleDateString('id-ID', opts);
+
+            // Warna merah jika ≤ 2 hari
+            const widget = document.getElementById('countdown-widget');
+            if (days <= 2) widget.classList.add('countdown-urgent');
+            else widget.classList.remove('countdown-urgent');
+        }
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+        // ===== File drop zone =====
+        const proof = document.getElementById('proof');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        if (proof) {
+            proof.addEventListener('change', () => {
+                fileNameDisplay.textContent = proof.files[0]?.name || 'Klik atau seret file ke sini';
+            });
+        }
+
+        // ===== Socket.io — Notifikasi real-time =====
+        const socket = io();
+        <% if (student) { %>
+        socket.emit('join_parent', <%= student.id %>);
+        <% } %>
+
+        socket.on('payment_approved', (data) => {
+            showToast('✅ Pembayaran bulan ' + data.month + '/' + data.year + ' telah dikonfirmasi LUNAS!', 'success');
+            setTimeout(() => location.reload(), 3000);
+        });
+
+        socket.on('payment_rejected', (data) => {
+            showToast('❌ Bukti pembayaran ditolak. Silakan unggah ulang.', 'danger');
+            setTimeout(() => location.reload(), 3000);
+        });
+
+        function showToast(message, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 5000);
+        }
+    </script>
 </body>
 </html>
