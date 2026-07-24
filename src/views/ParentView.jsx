@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import CountdownWidget from '../components/CountdownWidget';
 import { generatePaymentPdf } from '../utils/pdfGenerator';
 import { getStudents, getPayments, addPayment } from '../services/dataService';
-import { Search, UploadCloud, FileText, CheckCircle2, AlertCircle, Clock, ExternalLink } from 'lucide-react';
+import { Search, UploadCloud, FileText, CheckCircle2, AlertCircle, Clock, ExternalLink, Eye, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function ParentView({ onShowToast }) {
@@ -10,6 +10,7 @@ export default function ParentView({ onShowToast }) {
     const [searchedStudent, setSearchedStudent] = useState(null);
     const [searchErr, setSearchErr] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
+    const [previewModal, setPreviewModal] = useState({ open: false, url: '', type: 'image/png' });
 
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
@@ -50,6 +51,32 @@ export default function ParentView({ onShowToast }) {
             confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
         };
         reader.readAsDataURL(selectedFile);
+    };
+
+    // Helper untuk melihat bukti transfer (Modal + Blob URL safe)
+    const handleViewProof = (proofFile) => {
+        if (!proofFile) return;
+
+        if (proofFile.startsWith('data:')) {
+            try {
+                const parts = proofFile.split(';base64,');
+                const contentType = parts[0].split(':')[1] || 'image/png';
+                const raw = window.atob(parts[1]);
+                const uInt8Array = new Uint8Array(raw.length);
+                for (let i = 0; i < raw.length; ++i) {
+                    uInt8Array[i] = raw.charCodeAt(i);
+                }
+                const blob = new Blob([uInt8Array], { type: contentType });
+                const blobUrl = URL.createObjectURL(blob);
+                setPreviewModal({ open: true, url: blobUrl, rawData: proofFile, type: contentType });
+            } catch (e) {
+                console.error(e);
+                setPreviewModal({ open: true, url: proofFile, rawData: proofFile, type: 'image/png' });
+            }
+        } else {
+            const fullUrl = proofFile.startsWith('http') || proofFile.startsWith('/') ? proofFile : '/uploads/' + proofFile;
+            setPreviewModal({ open: true, url: fullUrl, rawData: fullUrl, type: 'image/png' });
+        }
     };
 
     // Calculate status & history
@@ -202,9 +229,13 @@ export default function ParentView({ onShowToast }) {
                                                     )}
                                                     {p.status === 'pending' && <span className="badge badge-warning">Pending</span>}
                                                     {p.status === 'ditolak' && <span className="badge badge-danger">Ditolak</span>}
-                                                    <a href={p.proof_file} target="_blank" rel="noreferrer" className="link-sm">
-                                                        <ExternalLink size={10} /> Lihat
-                                                    </a>
+                                                    <button
+                                                        onClick={() => handleViewProof(p.proof_file)}
+                                                        className="link-sm"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                    >
+                                                        <Eye size={12} /> Lihat
+                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
@@ -215,6 +246,58 @@ export default function ParentView({ onShowToast }) {
                     )}
                 </div>
             </div>
+
+            {/* Modal Preview Bukti Transfer */}
+            {previewModal.open && (
+                <div className="modal-overlay" onClick={() => setPreviewModal({ open: false, url: '', type: 'image/png' })}>
+                    <div className="modal-card glass" style={{ maxWidth: '640px', width: '90%', padding: '24px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                🖼️ Bukti Transfer Siswa
+                            </h3>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setPreviewModal({ open: false, url: '', type: 'image/png' })}
+                                style={{ padding: '6px' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div style={{ background: 'rgba(0, 0, 0, 0.4)', borderRadius: '12px', padding: '16px', maxHeight: '65vh', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                            {previewModal.type?.includes('pdf') ? (
+                                <iframe src={previewModal.url} style={{ width: '100%', height: '480px', border: 'none', borderRadius: '8px' }} title="Bukti PDF" />
+                            ) : (
+                                <img
+                                    src={previewModal.url || previewModal.rawData}
+                                    alt="Bukti Transfer"
+                                    style={{ maxWidth: '100%', maxHeight: '500px', borderRadius: '8px', objectFit: 'contain', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}
+                                />
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '20px' }}>
+                            <a
+                                href={previewModal.url || previewModal.rawData}
+                                target="_blank"
+                                rel="noreferrer"
+                                download="bukti-pembayaran-spp"
+                                className="btn btn-primary btn-sm"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                            >
+                                <ExternalLink size={14} /> Unduh / Buka File
+                            </a>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setPreviewModal({ open: false, url: '', type: 'image/png' })}
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
