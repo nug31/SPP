@@ -5,36 +5,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --primary: #0a84ff;
-    --primary-hover: #0071d9;
-    --primary-glow: rgba(10, 132, 255, 0.4);
-    --success: #30d158;
-    --success-hover: #25a244;
-    --success-glow: rgba(48, 209, 88, 0.4);
-    --danger: #ff453a;
-    --danger-hover: #d7372d;
-    --warning: #ffd60a;
-    --warning-hover: #e6c000;
-    --info: #64d2ff;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-glow: rgba(37, 99, 235, 0.3);
+    --success: #16a34a;
+    --success-hover: #15803d;
+    --success-glow: rgba(22, 163, 74, 0.3);
+    --danger: #dc2626;
+    --danger-hover: #b91c1c;
+    --warning: #d97706;
+    --warning-hover: #b45309;
+    --info: #0284c7;
     --wa-green: #25d366;
-    --bg-color: #000000;
-    --bg-2: #0d0d0d;
-    --text-main: #ffffff;
-    --text-muted: rgba(235,235,245,0.8);
-    --text-dim: rgba(235,235,245,0.4);
-    --glass-bg: rgba(28, 28, 30, 0.85);
-    --glass-bg-light: rgba(44, 44, 46, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.12);
-    --glass-border-hover: rgba(255, 255, 255, 0.25);
-    --card-shadow:
-        0 0 0 1px rgba(255,255,255,0.06),
-        0 20px 60px -10px rgba(0, 0, 0, 0.9),
-        0 4px 20px rgba(0, 0, 0, 0.5);
+    --bg-color: #0f172a;
+    --bg-2: #1e293b;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --glass-bg: rgba(30, 41, 59, 0.9);
+    --glass-bg-light: rgba(51, 65, 85, 0.7);
+    --glass-border: rgba(148, 163, 184, 0.15);
+    --glass-border-hover: rgba(148, 163, 184, 0.3);
+    --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.3);
     --sidebar-width: 260px;
-    --radius-xl: 22px;
-    --radius-lg: 18px;
-    --radius-md: 13px;
-    --radius-sm: 9px;
+    --radius-xl: 16px;
+    --radius-lg: 14px;
+    --radius-md: 10px;
+    --radius-sm: 7px;
 }
 
 /* ==================== RESET ==================== */
