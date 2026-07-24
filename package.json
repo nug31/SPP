@@ -1,7 +1,7 @@
 {
   "name": "satuspp",
   "version": "1.0.0",
-  "description": "",
+  "description": "SatuSPP - Sistem Pembayaran SPP Online",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
@@ -14,29 +14,27 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "canvas-confetti": "^1.9.4",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^4.2.1",
-    "lucide-react": "^1.25.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "xlsx": "^0.18.5"
-  },
-  "optionalDependencies": {
     "@supabase/supabase-js": "^2.110.0",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.3.0",
+    "canvas-confetti": "^1.9.4",
     "dotenv": "^17.4.2",
     "ejs": "^6.0.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.25.0",
     "multer": "^2.2.0",
     "node-cron": "^4.6.0",
     "pdfkit": "^0.19.1",
     "qrcode-terminal": "^0.12.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "socket.io": "^4.8.3",
     "sqlite3": "^6.0.1",
-    "whatsapp-web.js": "^1.34.7"
+    "whatsapp-web.js": "^1.34.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.4",
