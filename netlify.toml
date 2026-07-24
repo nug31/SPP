@@ -1,10 +1,10 @@
 [build]
-  command = "npm install --no-optional && npm run build"
+  command = "npm run build"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
-  NPM_FLAGS = "--no-optional"
+  NPM_FLAGS = "--omit=optional"
 
 [[redirects]]
   from = "/*"
