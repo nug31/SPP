@@ -83,13 +83,34 @@ export default function ParentView({ onShowToast }) {
     const allPayments = searchedStudent ? getPayments().filter(p => p.student_id === searchedStudent.id) : [];
     const currentPayment = allPayments.find(p => p.month === currentMonth && p.year === currentYear);
 
+    const isStep1Done = !!searchedStudent;
+    const isStep2Done = currentPayment && currentPayment.status !== 'ditolak';
+
     return (
         <div className="app-parent-container">
             <div className="parent-card-wrap">
-                <div className="card glass" style={{ padding: '32px 28px' }}>
+                <div className="card glass" style={{ padding: '36px 30px' }}>
                     <div className="header">
                         <h1>SatuSPP</h1>
-                        <p>Portal Pembayaran SPP Kelas X TKR 2 — Rp 700.000 / Bulan</p>
+                        <p>Portal Pembayaran SPP Online Sekolah — Rp 700.000 / Bulan</p>
+                    </div>
+
+                    {/* Apple Style Step Guide for Parents */}
+                    <div className="parent-step-guide">
+                        <div className={`step-item ${!isStep1Done ? 'active' : 'completed'}`}>
+                            <span className="step-num">{isStep1Done ? '✓' : '1'}</span>
+                            <span>Cek NISN</span>
+                        </div>
+                        <span className="step-arrow">➔</span>
+                        <div className={`step-item ${isStep1Done && !isStep2Done ? 'active' : (isStep2Done ? 'completed' : '')}`}>
+                            <span className="step-num">{isStep2Done ? '✓' : '2'}</span>
+                            <span>Upload Bukti</span>
+                        </div>
+                        <span className="step-arrow">➔</span>
+                        <div className={`step-item ${isStep2Done && currentPayment?.status === 'lunas' ? 'completed' : ''}`}>
+                            <span className="step-num">3</span>
+                            <span>Selesai</span>
+                        </div>
                     </div>
 
                     {/* Countdown Widget */}
@@ -100,7 +121,7 @@ export default function ParentView({ onShowToast }) {
                         <form onSubmit={handleSearch} className="search-form">
                             <input
                                 type="text"
-                                placeholder="Masukkan NISN Siswa..."
+                                placeholder="Masukkan NISN Siswa (contoh: 0104000553)..."
                                 value={nisnSearch}
                                 onChange={(e) => setNisnSearch(e.target.value)}
                                 required
@@ -111,21 +132,22 @@ export default function ParentView({ onShowToast }) {
                         </form>
                     </div>
 
-                    {searchErr && <div className="alert alert-danger" style={{ color: '#fca5a5', marginTop: '12px', fontSize: '13px' }}>⚠️ {searchErr}</div>}
+                    {searchErr && <div className="alert alert-danger" style={{ color: '#fca5a5', marginTop: '14px', fontSize: '13px' }}>⚠️ {searchErr}</div>}
 
                     {/* Student Info Card */}
                     {searchedStudent && (
                         <div className="student-info fade-in">
-                            <h3>📋 Data Siswa</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: '800', color: '#fff' }}>
+                                    {searchedStudent.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '17px', color: '#f9fafb' }}>{searchedStudent.name}</h3>
+                                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>NISN: {searchedStudent.nisn || searchedStudent.nis}</span>
+                                </div>
+                            </div>
+
                             <div className="info-grid">
-                                <div className="info-item">
-                                    <span className="info-label">Nama Siswa</span>
-                                    <span className="info-val">{searchedStudent.name}</span>
-                                </div>
-                                <div className="info-item">
-                                    <span className="info-label">NISN</span>
-                                    <span className="info-val">{searchedStudent.nisn || searchedStudent.nis}</span>
-                                </div>
                                 <div className="info-item">
                                     <span className="info-label">Kelas</span>
                                     <span className="info-val">{searchedStudent.kelas || 'X TKR 2'}</span>
@@ -138,26 +160,30 @@ export default function ParentView({ onShowToast }) {
 
                             {/* Status Bulan Ini */}
                             <div className="payment-status">
-                                <h4>Status Bulan Ini ({currentMonth}/{currentYear})</h4>
+                                <h4>Status Pembayaran Bulan Ini ({currentMonth}/{currentYear})</h4>
 
                                 {!currentPayment && (
                                     <div>
                                         <span className="badge badge-danger"><AlertCircle size={12} /> Belum Dibayar</span>
                                         <form onSubmit={handleUpload} style={{ marginTop: '14px' }}>
                                             <div className="form-group">
-                                                <label>📎 Unggah Bukti Transfer (Foto/PDF)</label>
-                                                <div className="file-drop-zone">
+                                                <label style={{ fontSize: '13px', fontWeight: '600', color: '#cbd5e1' }}>📎 Pilih Foto Bukti Transfer / Struk Bank</label>
+                                                <div className="file-drop-zone" style={{ padding: '20px' }}>
                                                     <input
                                                         type="file"
                                                         accept="image/*,.pdf"
                                                         onChange={(e) => setSelectedFile(e.target.files[0])}
                                                         required
                                                     />
-                                                    <span className="drop-icon"><UploadCloud size={28} color="#818cf8" /></span>
-                                                    <span id="file-name-display">{selectedFile ? selectedFile.name : 'Klik atau seret file ke sini'}</span>
+                                                    <span className="drop-icon"><UploadCloud size={32} color="#818cf8" /></span>
+                                                    <span id="file-name-display" style={{ fontWeight: selectedFile ? '600' : '400', color: selectedFile ? '#34d399' : '#9ca3af' }}>
+                                                        {selectedFile ? `✅ ${selectedFile.name}` : 'Tekan di sini untuk memilih foto bukti transfer dari HP'}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <button type="submit" className="btn btn-success">Kirim Bukti Pembayaran</button>
+                                            <button type="submit" className="btn btn-success" style={{ fontSize: '15px', padding: '12px' }}>
+                                                🚀 Kirim Bukti Pembayaran
+                                            </button>
                                         </form>
                                     </div>
                                 )}
