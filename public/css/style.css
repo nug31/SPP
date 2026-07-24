@@ -5,33 +5,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --primary: #6366f1;
-    --primary-hover: #4f46e5;
-    --primary-glow: rgba(99, 102, 241, 0.35);
-    --success: #10b981;
-    --success-hover: #059669;
-    --success-glow: rgba(16, 185, 129, 0.35);
-    --danger: #ef4444;
-    --danger-hover: #dc2626;
-    --warning: #f59e0b;
-    --warning-hover: #d97706;
-    --info: #3b82f6;
+    --primary: #0a84ff;
+    --primary-hover: #0071d9;
+    --primary-glow: rgba(10, 132, 255, 0.4);
+    --success: #30d158;
+    --success-hover: #25a244;
+    --success-glow: rgba(48, 209, 88, 0.4);
+    --danger: #ff453a;
+    --danger-hover: #d7372d;
+    --warning: #ffd60a;
+    --warning-hover: #e6c000;
+    --info: #64d2ff;
     --wa-green: #25d366;
-    --bg-color: #0b0f19;
-    --bg-2: #111827;
-    --text-main: #f9fafb;
-    --text-muted: #9ca3af;
-    --text-dim: #6b7280;
-    --glass-bg: rgba(17, 24, 39, 0.75);
-    --glass-bg-light: rgba(31, 41, 55, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-border-hover: rgba(255, 255, 255, 0.2);
-    --card-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+    --bg-color: #000000;
+    --bg-2: #0d0d0d;
+    --text-main: #ffffff;
+    --text-muted: rgba(235,235,245,0.8);
+    --text-dim: rgba(235,235,245,0.4);
+    --glass-bg: rgba(28, 28, 30, 0.85);
+    --glass-bg-light: rgba(44, 44, 46, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-border-hover: rgba(255, 255, 255, 0.25);
+    --card-shadow:
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 20px 60px -10px rgba(0, 0, 0, 0.9),
+        0 4px 20px rgba(0, 0, 0, 0.5);
     --sidebar-width: 260px;
-    --radius-xl: 24px;
-    --radius-lg: 20px;
-    --radius-md: 14px;
-    --radius-sm: 10px;
+    --radius-xl: 22px;
+    --radius-lg: 18px;
+    --radius-md: 13px;
+    --radius-sm: 9px;
 }
 
 /* ==================== RESET ==================== */
