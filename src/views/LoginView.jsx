@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 
 export default function LoginView({ onLogin, onShowToast }) {
-    const [email, setEmail] = useState('admin@spp.sch.id');
-    const [password, setPassword] = useState('admin123');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
 
     const handleQuickLogin = (role, defaultEmail, defaultPass) => {
         const name = 'Administrator';
