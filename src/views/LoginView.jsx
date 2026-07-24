@@ -5,22 +5,14 @@ export default function LoginView({ onLogin, onShowToast }) {
     const [password, setPassword] = useState('admin123');
 
     const handleQuickLogin = (role, defaultEmail, defaultPass) => {
-        let name = 'Administrator';
-        let kelas = null;
-        if (role === 'bendahara') name = 'Bendahara SPP';
-        if (role === 'wali_kelas') { name = 'Wali Kelas X TKR 2'; kelas = 'X TKR 2'; }
-        if (role === 'orang_tua') { name = 'Orang Tua / Wali Siswa'; }
-
-        onLogin({ email: defaultEmail, name, role, kelas });
-        onShowToast(`Login berhasil sebagai ${name}`, 'success');
+        const name = 'Administrator';
+        onLogin({ email: defaultEmail, name, role: 'admin', kelas: null });
+        onShowToast(`Login berhasil sebagai Administrator`, 'success');
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (email.includes('admin')) handleQuickLogin('admin', email, password);
-        else if (email.includes('bendahara')) handleQuickLogin('bendahara', email, password);
-        else if (email.includes('wali')) handleQuickLogin('wali_kelas', email, password);
-        else handleQuickLogin('orang_tua', email, password);
+        handleQuickLogin('admin', email, password);
     };
 
     return (
@@ -31,12 +23,12 @@ export default function LoginView({ onLogin, onShowToast }) {
                     <h1 style={{ fontSize: '24px', fontWeight: 800, background: 'linear-gradient(135deg, #818cf8, #c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         SatuSPP
                     </h1>
-                    <p style={{ fontSize: '13px', color: '#94a3b8' }}>Login Masuk Sistem SPP Sekolah</p>
+                    <p style={{ fontSize: '13px', color: '#94a3b8' }}>Login Admin Sistem SPP X TKR 2</p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Email Staff / Pengguna</label>
+                        <label>Email Admin</label>
                         <input
                             type="email"
                             placeholder="admin@spp.sch.id"
@@ -55,27 +47,16 @@ export default function LoginView({ onLogin, onShowToast }) {
                             required
                         />
                     </div>
-                    <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '8px' }}>Masuk Portal</button>
+                    <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '8px' }}>Masuk Portal Admin</button>
                 </form>
 
                 <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--glass-border)', textAlign: 'center' }}>
-                    <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px' }}>Atau Login Langsung per Role:</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                        <button onClick={() => handleQuickLogin('admin', 'admin@spp.sch.id', 'admin123')} className="btn btn-ghost btn-sm">
-                            🔑 Admin
-                        </button>
-                        <button onClick={() => handleQuickLogin('bendahara', 'bendahara@spp.sch.id', 'bendahara123')} className="btn btn-ghost btn-sm">
-                            💰 Bendahara
-                        </button>
-                        <button onClick={() => handleQuickLogin('wali_kelas', 'walikelas@spp.sch.id', 'walikelas123')} className="btn btn-ghost btn-sm">
-                            📋 Wali Kelas
-                        </button>
-                        <button onClick={() => handleQuickLogin('orang_tua', 'orangtua@spp.sch.id', 'parent123')} className="btn btn-ghost btn-sm">
-                            👨‍👩‍👧 Orang Tua
-                        </button>
-                    </div>
+                    <button onClick={() => handleQuickLogin('admin', 'admin@spp.sch.id', 'admin123')} className="btn btn-ghost btn-sm btn-full">
+                        🔑 Login Langsung sebagai Admin
+                    </button>
                 </div>
             </div>
         </div>
     );
 }
+

@@ -18,7 +18,7 @@
             <div class="login-logo">
                 <div class="login-icon">🏫</div>
                 <h1>SatuSPP</h1>
-                <p>Sistem Pembayaran SPP Sekolah Terpadu</p>
+                <p>Sistem Pembayaran SPP X TKR 2</p>
             </div>
 
             <% if (error) { %>
@@ -27,10 +27,10 @@
 
             <form action="/login" method="POST" class="login-form">
                 <div class="form-group">
-                    <label for="email">Email</label>
+                    <label for="email">Email Admin</label>
                     <div class="input-icon-wrap">
                         <span class="input-icon">✉️</span>
-                        <input type="email" id="email" name="email" placeholder="email@sekolah.sch.id" required autocomplete="email">
+                        <input type="email" id="email" name="email" placeholder="admin@spp.sch.id" required autocomplete="email">
                     </div>
                 </div>
                 <div class="form-group">
@@ -40,17 +40,15 @@
                         <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full">Masuk</button>
+                <button type="submit" class="btn btn-primary btn-full">Masuk Portal Admin</button>
             </form>
 
             <div class="login-divider">atau</div>
 
-            <a href="/" class="btn-ghost-center">Cek tagihan sebagai Orang Tua →</a>
+            <a href="/" class="btn-ghost-center">Cek Tagihan SPP Siswa →</a>
 
-            <div class="login-roles">
-                <span class="role-badge role-admin">Admin</span>
-                <span class="role-badge role-bendahara">Bendahara</span>
-                <span class="role-badge role-walikelas">Wali Kelas</span>
+            <div class="login-roles" style="justify-content: center;">
+                <span class="role-badge role-admin">Khusus Administrator</span>
             </div>
         </div>
     </div>

@@ -92,7 +92,7 @@ export default function ParentView({ onShowToast }) {
                 <div className="card glass" style={{ padding: '36px 30px' }}>
                     <div className="header">
                         <h1>SatuSPP</h1>
-                        <p>Portal Pembayaran SPP Online Sekolah — Rp 700.000 / Bulan</p>
+                        <p>Portal Pembayaran SPP Online X TKR 2 — Rp 700.000 / Bulan</p>
                     </div>
 
                     {/* Apple Style Step Guide for Parents */}
