@@ -82,8 +82,10 @@ router.get('/', async (req, res) => {
     const { data: allStudents } = await supabase.from('students').select('kelas');
     const kelasList = [...new Set((allStudents || []).map(s => s.kelas).filter(Boolean))].sort();
 
+    const sortedStudents = (students || []).sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+
     res.render('admin', {
-        students: students || [],
+        students: sortedStudents,
         payments: flatPayments,
         notifications: notifRaw || [],
         stats,
@@ -95,6 +97,12 @@ router.get('/', async (req, res) => {
     });
 });
 
+// POST /admin/clear-payments — Hapus seluruh data pembayaran dummy
+router.post('/clear-payments', requireRole('admin'), async (req, res) => {
+    await supabase.from('payments').delete();
+    res.redirect('/admin?success=payments_cleared');
+});
+
 // POST /admin/import — Import Excel
 router.post('/import', uploadMemory.single('excel'), async (req, res) => {
     if (!req.file) return res.redirect('/admin?error=nofile');
@@ -102,15 +110,15 @@ router.post('/import', uploadMemory.single('excel'), async (req, res) => {
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
         const data = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
         const rows = data
-            .filter(r => (r.nisn || r.nis) && r.name && r.parent_wa)
+            .filter(r => (r.nisn || r.nis || r.NISN || r.NIS || r.name || r.NAMA) && (r.name || r.NAMA))
             .map(r => {
-                const idVal = String(r.nisn || r.nis);
+                const idVal = String(r.nisn || r.NISN || r.nis || r.NIS || '').trim();
                 return {
                     nisn: idVal,
                     nis: idVal,
-                    name: String(r.name),
-                    parent_wa: String(r.parent_wa),
-                    kelas: r.kelas ? String(r.kelas) : 'X TKR 2'
+                    name: String(r.name || r.NAMA || '').trim(),
+                    parent_wa: String(r.parent_wa || r.WA || r.NO_WA || '').trim(),
+                    kelas: r.kelas || r.KELAS ? String(r.kelas || r.KELAS).trim() : 'X TKR 2'
                 };
             });
         if (!rows.length) return res.redirect('/admin?error=emptydata');

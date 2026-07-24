@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent } from '../services/dataService';
+import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents } from '../services/dataService';
 import { generatePaymentPdf } from '../utils/pdfGenerator';
-import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageCircle, Trash2, FileText, Upload, FileSpreadsheet } from 'lucide-react';
+import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageCircle, Trash2, FileText, Upload, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function AdminView({ user, onShowToast }) {
@@ -14,7 +14,6 @@ export default function AdminView({ user, onShowToast }) {
     const [showAddForm, setShowAddForm] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [newStudent, setNewStudent] = useState({ nisn: '', name: '', parent_wa: '', kelas: 'X TKR 2' });
-    const [pasteData, setPasteData] = useState('');
 
     // Reject Modal state
     const [rejectModal, setRejectModal] = useState({ open: false, paymentId: null, studentName: '', reason: '' });
@@ -44,19 +43,20 @@ export default function AdminView({ user, onShowToast }) {
                 let count = 0;
                 data.forEach(row => {
                     const nisnVal = String(row.nisn || row.NISN || row.nis || row.NIS || '').trim();
-                    const nameVal = String(row.name || row.NAMA || row.Nama || row.name || '').trim();
+                    const nameVal = String(row.name || row.NAMA || row.Nama || '').trim();
                     const waVal = String(row.parent_wa || row.WA || row.NO_WA || row.No_WA || row.Phone || '').trim();
                     const kelasVal = String(row.kelas || row.KELAS || row.Kelas || 'X TKR 2').trim();
 
-                    if (nisnVal && nameVal && waVal) {
+                    if (nameVal || nisnVal) {
                         saveStudent({ nisn: nisnVal, name: nameVal, parent_wa: waVal, kelas: kelasVal });
                         count++;
                     }
                 });
 
+                deduplicateStudents();
                 refreshData();
                 setShowImportModal(false);
-                onShowToast(`✅ Berhasil mengimpor ${count} data siswa dari Excel!`, 'success');
+                onShowToast(`✅ Berhasil mengimpor & mengurutkan ${count} data siswa dari Excel!`, 'success');
             } catch (err) {
                 console.error(err);
                 onShowToast('❌ Gagal membaca file Excel. Pastikan format kolom benar.', 'danger');
@@ -77,17 +77,35 @@ export default function AdminView({ user, onShowToast }) {
         XLSX.writeFile(wb, 'Template_Data_Siswa_SatuSPP.xlsx');
     };
 
-    // Filter Students
-    const filteredStudents = students.filter(s => {
-        const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) || (s.nisn || s.nis).includes(search);
-        const matchKelas = !filterKelas || s.kelas === filterKelas;
-        return matchSearch && matchKelas;
-    });
+    // Clean & Sort Students Action
+    const handleCleanStudents = () => {
+        const cleaned = deduplicateStudents();
+        setStudents(cleaned);
+        onShowToast(`🔄 Berhasil merapikan data: ${cleaned.length} siswa unik terurut A-Z.`, 'success');
+    };
+
+    // Clear All Payments Action
+    const handleClearPayments = () => {
+        if (window.confirm('Yakin ingin menghapus seluruh data pembayaran dummy? Data pembayaran akan menjadi kosong dan siap diisi data real.')) {
+            clearAllPayments();
+            refreshData();
+            onShowToast('🗑️ Seluruh data pembayaran dummy telah dihapus.', 'info');
+        }
+    };
+
+    // Filter Students & Sort Alphabetically A-Z
+    const filteredStudents = students
+        .filter(s => {
+            const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) || (s.nisn || s.nis || '').includes(search);
+            const matchKelas = !filterKelas || s.kelas === filterKelas;
+            return matchSearch && matchKelas;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
 
     // Filter Payments
     const filteredPayments = payments.filter(p => {
         const student = students.find(s => s.id === p.student_id);
-        const matchSearch = !search || (student && (student.name.toLowerCase().includes(search.toLowerCase()) || (student.nisn || student.nis).includes(search)));
+        const matchSearch = !search || (student && (student.name.toLowerCase().includes(search.toLowerCase()) || (student.nisn || student.nis || '').includes(search)));
         const matchKelas = !filterKelas || (student && student.kelas === filterKelas);
         const matchBulan = !filterBulan || p.month === parseInt(filterBulan);
         const matchStatus = !filterStatus || p.status === filterStatus;
@@ -124,7 +142,7 @@ export default function AdminView({ user, onShowToast }) {
         setNewStudent({ nisn: '', name: '', parent_wa: '', kelas: 'X TKR 2' });
         setShowAddForm(false);
         refreshData();
-        onShowToast('✅ Data siswa berhasil ditambahkan!', 'success');
+        onShowToast('✅ Data siswa berhasil ditambahkan & diurutkan!', 'success');
     };
 
     const handleDeleteStudent = (id, name) => {
@@ -207,6 +225,9 @@ export default function AdminView({ user, onShowToast }) {
                         <h2>👨‍🎓 Data Siswa</h2>
                         {user.role === 'admin' && (
                             <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="btn btn-ghost btn-sm" onClick={handleCleanStudents} title="Urutkan nama A-Z dan bersihkan duplikat">
+                                    <RefreshCw size={14} color="#6366f1" /> Rapid Clean & Urutkan
+                                </button>
                                 <button className="btn btn-ghost btn-sm" onClick={() => setShowImportModal(true)}>
                                     <FileSpreadsheet size={14} color="#10b981" /> Import Excel
                                 </button>
@@ -278,7 +299,15 @@ export default function AdminView({ user, onShowToast }) {
 
                 {/* Section Pembayaran */}
                 <section id="payments" className="card glass" style={{ padding: '24px' }}>
-                    <h2 style={{ marginBottom: '16px' }}>💳 Daftar Pembayaran</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h2>💳 Daftar Pembayaran</h2>
+                        {user.role === 'admin' && payments.length > 0 && (
+                            <button className="btn btn-danger btn-sm" onClick={handleClearPayments} title="Hapus semua data pembayaran dummy">
+                                <Trash2 size={14} /> Hapus Data Pembayaran Dummy
+                            </button>
+                        )}
+                    </div>
+
 
                     <div className="filter-bar">
                         <select className="form-select" value={filterBulan} onChange={e => setFilterBulan(e.target.value)}>

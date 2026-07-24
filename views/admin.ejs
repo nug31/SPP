@@ -77,9 +77,10 @@
 
             <% if (success) { %>
                 <div class="alert alert-success">
-                    <% if (success === 'imported') { %>✅ Data siswa berhasil diimport!
+                    <% if (success === 'imported') { %>✅ Data siswa berhasil diimport & diurutkan!
                     <% } else if (success === 'wa_sent') { %>📨 Pesan WhatsApp berhasil dikirim!
-                    <% } else if (success === 'added') { %>✅ Siswa berhasil ditambahkan!
+                    <% } else if (success === 'added') { %>✅ Siswa berhasil ditambahkan & diurutkan!
+                    <% } else if (success === 'payments_cleared') { %>🗑️ Seluruh data pembayaran dummy berhasil dihapus. Real data siap digunakan!
                     <% } else { %><%= success %><% } %>
                 </div>
             <% } %>
@@ -227,8 +228,13 @@
 
             <!-- Pembayaran -->
             <section id="payments" class="card glass section-card">
-                <div class="section-header">
+                <div class="section-header" style="display:flex; justify-between; align-items:center;">
                     <h2>💳 Daftar Pembayaran</h2>
+                    <% if (user.role === 'admin' && payments.length > 0) { %>
+                    <form action="/admin/clear-payments" method="POST" onsubmit="return confirm('Yakin hapus semua data pembayaran dummy?');">
+                        <button type="submit" class="btn btn-danger btn-sm">🗑️ Hapus Data Pembayaran Dummy</button>
+                    </form>
+                    <% } %>
                 </div>
 
                 <!-- Filter Pembayaran -->

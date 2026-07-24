@@ -16,65 +16,109 @@ const INITIAL_STUDENTS = [
     { id: 5, nisn: '0051234571', nis: '0051234571', name: 'Eka Putri', parent_wa: '081599887766', kelas: 'XI TKR 1' },
 ];
 
-const INITIAL_PAYMENTS = [
-    {
-        id: 101,
-        student_id: 1,
-        month: 7,
-        year: 2026,
-        proof_file: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500&auto=format&fit=crop&q=60',
-        status: 'lunas',
-        created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 4 * 86400000).toISOString()
-    },
-    {
-        id: 102,
-        student_id: 2,
-        month: 7,
-        year: 2026,
-        proof_file: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500&auto=format&fit=crop&q=60',
-        status: 'pending',
-        created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 1 * 86400000).toISOString()
-    }
-];
+// Data pembayaran kosong untuk real data
+const INITIAL_PAYMENTS = [];
+
+// Helper untuk membersihkan duplikat & mengurutkan siswa berdasarkan nama
+export const deduplicateAndSortStudents = (studentList) => {
+    if (!Array.isArray(studentList)) return [];
+    const map = new Map();
+    studentList.forEach(s => {
+        const nisnVal = String(s.nisn || s.nis || '').trim();
+        const nameVal = String(s.name || '').trim();
+        if (!nameVal && !nisnVal) return;
+
+        // Gunakan key NISN jika ada, jika tidak pakai Name
+        const key = nisnVal ? nisnVal.toLowerCase() : nameVal.toLowerCase();
+        if (!map.has(key)) {
+            map.set(key, {
+                ...s,
+                id: s.id || Date.now() + Math.floor(Math.random() * 1000),
+                nisn: nisnVal,
+                nis: nisnVal,
+                name: nameVal,
+                parent_wa: String(s.parent_wa || '').trim(),
+                kelas: String(s.kelas || 'X TKR 2').trim()
+            });
+        }
+    });
+
+    const result = Array.from(map.values());
+    // Urutkan berdasarkan Nama Siswa (A-Z)
+    result.sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+    return result;
+};
 
 export const getStudents = () => {
     const data = localStorage.getItem(STORAGE_KEYS.STUDENTS);
     if (!data) {
-        localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(INITIAL_STUDENTS));
-        return INITIAL_STUDENTS;
+        const initialSorted = deduplicateAndSortStudents(INITIAL_STUDENTS);
+        localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(initialSorted));
+        return initialSorted;
     }
-    return JSON.parse(data);
+    try {
+        const parsed = JSON.parse(data);
+        const cleaned = deduplicateAndSortStudents(parsed);
+        // Sync kembali jika jumlah berubah karena deduplikasi
+        if (cleaned.length !== parsed.length) {
+            localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(cleaned));
+        }
+        return cleaned;
+    } catch {
+        return [];
+    }
 };
 
 export const saveStudent = (newStudent) => {
     const students = getStudents();
-    const idVal = newStudent.nisn || newStudent.nis;
-    const existingIndex = students.findIndex(s => s.nisn === idVal || s.nis === idVal);
+    const idVal = String(newStudent.nisn || newStudent.nis || '').trim();
+    const nameVal = String(newStudent.name || '').trim();
+
+    const existingIndex = students.findIndex(s => 
+        (idVal && (s.nisn === idVal || s.nis === idVal)) || 
+        (s.name.toLowerCase() === nameVal.toLowerCase())
+    );
+
     let updated;
     if (existingIndex >= 0) {
-        students[existingIndex] = { ...students[existingIndex], ...newStudent, nisn: idVal, nis: idVal };
+        students[existingIndex] = {
+            ...students[existingIndex],
+            ...newStudent,
+            nisn: idVal || students[existingIndex].nisn,
+            nis: idVal || students[existingIndex].nis,
+            name: nameVal || students[existingIndex].name,
+            parent_wa: String(newStudent.parent_wa || students[existingIndex].parent_wa).trim(),
+            kelas: String(newStudent.kelas || students[existingIndex].kelas).trim()
+        };
         updated = students;
     } else {
         const item = {
-            id: Date.now(),
+            id: Date.now() + Math.floor(Math.random() * 1000),
             nisn: idVal,
             nis: idVal,
-            name: newStudent.name,
-            parent_wa: newStudent.parent_wa,
-            kelas: newStudent.kelas || 'X TKR 2'
+            name: nameVal,
+            parent_wa: String(newStudent.parent_wa || '').trim(),
+            kelas: String(newStudent.kelas || 'X TKR 2').trim()
         };
         updated = [...students, item];
     }
-    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(updated));
-    return updated;
+    const finalCleaned = deduplicateAndSortStudents(updated);
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(finalCleaned));
+    return finalCleaned;
 };
 
 export const deleteStudent = (id) => {
     const students = getStudents().filter(s => s.id !== id);
-    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
-    return students;
+    const cleaned = deduplicateAndSortStudents(students);
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(cleaned));
+    return cleaned;
+};
+
+export const deduplicateStudents = () => {
+    const current = getStudents();
+    const cleaned = deduplicateAndSortStudents(current);
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(cleaned));
+    return cleaned;
 };
 
 export const getPayments = () => {
@@ -83,7 +127,23 @@ export const getPayments = () => {
         localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(INITIAL_PAYMENTS));
         return INITIAL_PAYMENTS;
     }
-    return JSON.parse(data);
+    try {
+        const parsed = JSON.parse(data);
+        // Hapus data dummy jika ada (misal payment id 101/102 yang menunjuk ke dummy data)
+        const realPayments = parsed.filter(p => p.id !== 101 && p.id !== 102);
+        if (realPayments.length !== parsed.length) {
+            localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(realPayments));
+        }
+        return realPayments;
+    } catch {
+        return [];
+    }
+};
+
+export const clearAllPayments = () => {
+    localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.NOTIFS, JSON.stringify([]));
+    return [];
 };
 
 export const addPayment = (paymentData) => {
@@ -162,3 +222,4 @@ export const setCurrentUser = (user) => {
     if (!user) localStorage.removeItem(STORAGE_KEYS.USER);
     else localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 };
+
