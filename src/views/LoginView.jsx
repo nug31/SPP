@@ -50,11 +50,7 @@ export default function LoginView({ onLogin, onShowToast }) {
                     <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '8px' }}>Masuk Portal Admin</button>
                 </form>
 
-                <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--glass-border)', textAlign: 'center' }}>
-                    <button onClick={() => handleQuickLogin('admin', 'admin@spp.sch.id', 'admin123')} className="btn btn-ghost btn-sm btn-full">
-                        🔑 Login Langsung sebagai Admin
-                    </button>
-                </div>
+
             </div>
         </div>
     );
