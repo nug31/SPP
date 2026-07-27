@@ -258,12 +258,15 @@ export default function AdminView({ user, onShowToast }) {
         return matchSearch && matchKelas && matchBulan && matchStatus;
     });
 
-    // Calculate Unpaid Students for target month
-    const targetMonth = filterBulan ? parseInt(filterBulan) : currentMonth;
+    // Calculate Unpaid Students (exclude students who have paid)
     const paidStudentIds = new Set(
-        payments
-            .filter(p => p.month === targetMonth && p.year === currentYear && (p.status === 'lunas' || p.status === 'pending'))
-            .map(p => p.student_id)
+        filterBulan
+            ? payments
+                .filter(p => p.month === parseInt(filterBulan) && (p.status === 'lunas' || p.status === 'pending'))
+                .map(p => p.student_id)
+            : payments
+                .filter(p => p.status === 'lunas' || p.status === 'pending')
+                .map(p => p.student_id)
     );
 
     const unpaidStudents = students
@@ -508,7 +511,9 @@ export default function AdminView({ user, onShowToast }) {
                 {/* Section 2: Data Siswa Belum Bayar */}
                 <section id="unpaid" className="card glass" style={{ padding: '24px', marginBottom: '28px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h2 style={{ color: '#f87171' }}>⚠️ Daftar Siswa Belum Bayar — Bulan {bulanNamaList[targetMonth]} ({unpaidStudents.length} Siswa)</h2>
+                        <h2 style={{ color: '#f87171' }}>
+                            ⚠️ {filterBulan ? `Daftar Siswa Belum Bayar — Bulan ${bulanNamaList[filterBulan]}` : 'Daftar Siswa Belum Bayar'} ({unpaidStudents.length} Siswa)
+                        </h2>
                     </div>
 
                     <div className="table-responsive">
