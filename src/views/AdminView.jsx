@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents, addPayment } from '../services/dataService';
+import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents, addPayment, deletePayment } from '../services/dataService';
 import { generatePaymentPdf } from '../utils/pdfGenerator';
 import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageCircle, Trash2, FileText, Upload, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -201,6 +201,14 @@ export default function AdminView({ user, onShowToast }) {
             deleteStudent(id);
             refreshData();
             onShowToast('🗑️ Data siswa telah dihapus.', 'info');
+        }
+    };
+
+    const handleDeletePayment = (id) => {
+        if (window.confirm('Yakin ingin menghapus data pembayaran ini?')) {
+            deletePayment(id);
+            refreshData();
+            onShowToast('🗑️ Data pembayaran telah dihapus.', 'info');
         }
     };
 
@@ -416,10 +424,19 @@ export default function AdminView({ user, onShowToast }) {
                                                         <button onClick={() => handleOpenReject(p.id, student?.name)} className="btn btn-danger btn-sm">❌ Reject</button>
                                                     </div>
                                                 )}
-                                                {p.status === 'lunas' && student && (
-                                                    <button onClick={() => generatePaymentPdf(student, p)} className="btn btn-download btn-sm">
-                                                        <FileText size={12} /> PDF
-                                                    </button>
+                                                {p.status === 'lunas' && (
+                                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                                        {student && (
+                                                            <button onClick={() => generatePaymentPdf(student, p)} className="btn btn-download btn-sm">
+                                                                <FileText size={12} /> PDF
+                                                            </button>
+                                                        )}
+                                                        {user.role === 'admin' && (
+                                                            <button onClick={() => handleDeletePayment(p.id)} className="btn btn-danger btn-sm" title="Hapus">
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </td>
                                         </tr>

@@ -72,8 +72,8 @@ export const getStudents = () => {
     try {
         const parsed = JSON.parse(data);
         const cleaned = deduplicateAndSortStudents(parsed);
-        // Sync kembali jika jumlah berubah karena deduplikasi
-        if (cleaned.length !== parsed.length) {
+        // Sync kembali jika ada perubahan (termasuk perbaikan ID duplikat)
+        if (JSON.stringify(cleaned) !== JSON.stringify(parsed)) {
             localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(cleaned));
         }
         return cleaned;
@@ -157,6 +157,12 @@ export const clearAllPayments = () => {
     localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
     localStorage.setItem(STORAGE_KEYS.NOTIFS, JSON.stringify([]));
     return [];
+};
+
+export const deletePayment = (id) => {
+    const payments = getPayments().filter(p => p.id !== id);
+    localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
+    return payments;
 };
 
 export const addPayment = (paymentData) => {
