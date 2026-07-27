@@ -346,20 +346,13 @@ export default function AdminView({ user, onShowToast }) {
         const kelas = student.kelas || '';
         const text = encodeURIComponent(
 `Assalamu'alaikum Wr. Wb.
-
-Kepada Yth,
-Bapak/Ibu Wali Murid dari *${student.name}*${kelas ? `\nKelas: *${kelas}*` : ''}
-
+Bapak/Ibu Wali Murid dari *${student.name}*
+Kelas: *${kelas}*
 Dengan hormat,
-Saya selaku Wali Kelas ingin menyampaikan bahwa hingga saat ini, pembayaran SPP Bulan *${bulanNama}* atas nama putra/putri Bapak/Ibu senilai *Rp 700.000* belum kami terima.
-
-Mohon kiranya Bapak/Ibu berkenan untuk segera melakukan pembayaran melalui portal *SatuSPP* atau menghubungi saya langsung jika ada kendala.
-
+Saya selaku Wali Kelas ingin menyampaikan bahwa hingga saat ini, pembayaran SPP Bulan *${bulanNama}* senilai *Rp 700.000* belum kami terima.
+Mohon kiranya Bapak/Ibu berkenan untuk segera melakukan pembayaran.
 Atas perhatian dan kerjasamanya, saya ucapkan terima kasih yang sebesar-besarnya. 🙏
-
-Wassalamu'alaikum Wr. Wb.
-_${waliKelas}_
-_Wali Kelas ${kelas}_`
+Wassalamu'alaikum Wr. Wb.`
         );
         window.open(`https://wa.me/${formattedNum}?text=${text}`, '_blank');
     };
