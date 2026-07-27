@@ -15,6 +15,7 @@ export default function AdminView({ user, onShowToast }) {
     const [filterStatus, setFilterStatus] = useState('');
     const [showAddForm, setShowAddForm] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showMasterModal, setShowMasterModal] = useState(false);
     const [selectedExcelFile, setSelectedExcelFile] = useState(null);
     const [importing, setImporting] = useState(false);
     const [newStudent, setNewStudent] = useState({ nisn: '', name: '', parent_wa: '', kelas: 'X TKR 2' });
@@ -257,22 +258,22 @@ export default function AdminView({ user, onShowToast }) {
         return matchSearch && matchKelas && matchBulan && matchStatus;
     });
 
-    // Stats Calculation (Dynamic for selected month or overall)
-    const bulanNamaList = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    
-    const relevantPayments = filterBulan 
-        ? payments.filter(p => p.month === parseInt(filterBulan))
-        : payments;
+    // Calculate Unpaid Students for target month
+    const targetMonth = filterBulan ? parseInt(filterBulan) : currentMonth;
+    const paidStudentIds = new Set(
+        payments
+            .filter(p => p.month === targetMonth && p.year === currentYear && (p.status === 'lunas' || p.status === 'pending'))
+            .map(p => p.student_id)
+    );
 
-    const lunasCount = relevantPayments.filter(p => p.status === 'lunas').length;
-    const pendingCount = relevantPayments.filter(p => p.status === 'pending').length;
-    const belumCount = Math.max(0, students.length - lunasCount);
-    const totalTerkumpul = lunasCount * 700000;
-
-    const labelLunas = filterBulan ? `Lunas Bulan ${bulanNamaList[filterBulan]}` : 'Total Transaksi Lunas';
-    const labelPending = filterBulan ? `Menunggu (Bulan ${bulanNamaList[filterBulan]})` : 'Menunggu Verifikasi';
-    const labelBelum = filterBulan ? `Belum Bayar (Bulan ${bulanNamaList[filterBulan]})` : 'Belum Lunas';
-    const labelTerkumpul = filterBulan ? `Terkumpul Bulan ${bulanNamaList[filterBulan]}` : 'Total Terkumpul';
+    const unpaidStudents = students
+        .filter(s => {
+            const isUnpaid = !paidStudentIds.has(s.id);
+            const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) || (s.nisn || s.nis || '').includes(search);
+            const matchKelas = !filterKelas || s.kelas === filterKelas;
+            return isUnpaid && matchSearch && matchKelas;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
 
     const handleConfirm = async (id) => {
         await updatePaymentStatus(id, 'lunas');
@@ -383,94 +384,41 @@ export default function AdminView({ user, onShowToast }) {
                     </div>
                 </div>
 
-                {/* Section Data Siswa */}
-                <section id="students" className="card glass" style={{ padding: '24px', marginBottom: '28px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h2>👨‍🎓 Data Siswa</h2>
-                        {user.role === 'admin' && (
-                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                <button className="btn btn-primary btn-sm" onClick={() => { setUploadModal({ open: true, student: null, file: null, month: currentMonth, year: currentYear }); setOcrMatchStatus(null); }}>
-                                    <Sparkles size={14} /> Upload Bukti TF (Auto AI Detect)
-                                </button>
-                                <button className="btn btn-ghost btn-sm" onClick={handleCleanStudents} title="Urutkan nama A-Z dan bersihkan duplikat">
-                                    <RefreshCw size={14} color="#6366f1" /> Rapid Clean & Urutkan
-                                </button>
-                                <button className="btn btn-ghost btn-sm" onClick={() => setShowImportModal(true)}>
-                                    <FileSpreadsheet size={14} color="#10b981" /> Import Excel
-                                </button>
-                                <button className="btn btn-primary btn-sm" onClick={() => setShowAddForm(!showAddForm)}>
-                                    <Plus size={14} /> Tambah Siswa
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {showAddForm && (
-                        <form onSubmit={handleAddStudent} className="glass-inner" style={{ marginBottom: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
-                            <div><label style={{ fontSize: '11px', color: '#94a3b8' }}>NISN</label><input type="text" placeholder="NISN" value={newStudent.nisn} onChange={e => setNewStudent({ ...newStudent, nisn: e.target.value })} required /></div>
-                            <div><label style={{ fontSize: '11px', color: '#94a3b8' }}>Nama</label><input type="text" placeholder="Nama Lengkap" value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })} required /></div>
-                            <div><label style={{ fontSize: '11px', color: '#94a3b8' }}>No WA</label><input type="text" placeholder="08xxxxxxxxxx" value={newStudent.parent_wa} onChange={e => setNewStudent({ ...newStudent, parent_wa: e.target.value })} required /></div>
-                            <div><label style={{ fontSize: '11px', color: '#94a3b8' }}>Kelas</label>
-                                <select className="form-select" value={newStudent.kelas} onChange={e => setNewStudent({ ...newStudent, kelas: e.target.value })}>
-                                    <option value="X TKR 2">X TKR 2</option>
-                                    <option value="XI TKR 1">XI TKR 1</option>
-                                    <option value="XII TKR 1">XII TKR 1</option>
-                                </select>
-                            </div>
-                            <button type="submit" className="btn btn-success btn-sm">Simpan</button>
-                        </form>
-                    )}
-
-                    {/* Filter bar */}
-                    <div className="filter-bar">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                {/* Action Bar & Global Filters */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '10px', flex: 1, minWidth: '280px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', padding: '8px 14px', borderRadius: '10px' }}>
                             <Search size={16} color="#94a3b8" />
-                            <input type="text" placeholder="🔍 Cari nama atau NISN..." value={search} onChange={e => setSearch(e.target.value)} />
+                            <input type="text" placeholder="🔍 Cari nama siswa atau NISN..." value={search} onChange={e => setSearch(e.target.value)} style={{ background: 'none', border: 'none', color: '#fff', width: '100%', outline: 'none' }} />
                         </div>
-                        <select className="form-select" value={filterKelas} onChange={e => setFilterKelas(e.target.value)}>
+                        <select className="form-select" value={filterKelas} onChange={e => setFilterKelas(e.target.value)} style={{ width: '150px' }}>
                             <option value="">Semua Kelas</option>
                             {kelasList.map(k => <option key={k} value={k}>{k}</option>)}
                         </select>
+                        <select className="form-select" value={filterBulan} onChange={e => setFilterBulan(e.target.value)} style={{ width: '150px' }}>
+                            <option value="">Semua Bulan</option>
+                            {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((b, i) => (
+                                <option key={i} value={i + 1}>{b}</option>
+                            ))}
+                        </select>
                     </div>
 
-                    <div className="table-responsive">
-                        <table className="data-table">
-                            <thead>
-                                <tr><th>#</th><th>NISN</th><th>Nama</th><th>Kelas</th><th>No WA</th><th>Aksi</th></tr>
-                            </thead>
-                            <tbody>
-                                {filteredStudents.map((s, i) => (
-                                    <tr key={s.id}>
-                                        <td>{i + 1}</td>
-                                        <td><code>{s.nisn || s.nis}</code></td>
-                                        <td><strong>{s.name}</strong></td>
-                                        <td><span className="kelas-badge">{s.kelas || 'X TKR 2'}</span></td>
-                                        <td>{s.parent_wa}</td>
-                                        <td style={{ display: 'flex', gap: '6px' }}>
-                                            <button onClick={() => setUploadModal({ open: true, student: s, file: null, month: currentMonth, year: currentYear })} className="btn btn-success btn-sm" title="Input Pembayaran">
-                                                <Upload size={12} /> Upload Bukti
-                                            </button>
-                                            <button onClick={() => handleSendWa(s)} className="btn btn-wa btn-sm" title="Kirim WhatsApp Reminder">
-                                                <MessageCircle size={12} /> WA
-                                            </button>
-                                            {user.role === 'admin' && (
-                                                <button onClick={() => handleDeleteStudent(s.id, s.name)} className="btn btn-danger btn-sm" title="Hapus">
-                                                    <Trash2 size={12} />
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filteredStudents.length === 0 && <tr><td colSpan="6" style={{ textStyle: 'italic', textAlign: 'center', padding: '20px', color: '#64748b' }}>Tidak ada data siswa ditemukan.</td></tr>}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+                    {user.role === 'admin' && (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="btn btn-primary" onClick={() => { setUploadModal({ open: true, student: null, file: null, month: targetMonth, year: currentYear }); setOcrMatchStatus(null); }}>
+                                <Sparkles size={16} /> Upload Bukti TF (Auto AI Detect)
+                            </button>
+                            <button className="btn btn-ghost" onClick={() => setShowMasterModal(true)}>
+                                📁 Master Data Siswa ({students.length})
+                            </button>
+                        </div>
+                    )}
+                </div>
 
-                {/* Section Pembayaran */}
-                <section id="payments" className="card glass" style={{ padding: '24px' }}>
+                {/* Section 1: Data Siswa Sudah Bayar & Verifikasi */}
+                <section id="payments" className="card glass" style={{ padding: '24px', marginBottom: '28px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h2>💳 Daftar Pembayaran</h2>
+                        <h2>✅ Status Pembayaran Siswa ({filteredPayments.length})</h2>
                         {user.role === 'admin' && payments.length > 0 && (
                             <button className="btn btn-danger btn-sm" onClick={handleClearPayments} title="Hapus semua data pembayaran dummy">
                                 <Trash2 size={14} /> Hapus Data Pembayaran Dummy
@@ -478,26 +426,10 @@ export default function AdminView({ user, onShowToast }) {
                         )}
                     </div>
 
-
-                    <div className="filter-bar">
-                        <select className="form-select" value={filterBulan} onChange={e => setFilterBulan(e.target.value)}>
-                            <option value="">Semua Bulan</option>
-                            {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((b, i) => (
-                                <option key={i} value={i + 1}>{b}</option>
-                            ))}
-                        </select>
-                        <select className="form-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                            <option value="">Semua Status</option>
-                            <option value="pending">Menunggu</option>
-                            <option value="lunas">Lunas</option>
-                            <option value="ditolak">Ditolak</option>
-                        </select>
-                    </div>
-
                     <div className="table-responsive">
                         <table className="data-table">
                             <thead>
-                                <tr><th>Waktu</th><th>Siswa</th><th>Kelas</th><th>Periode</th><th>Status</th><th>Bukti</th><th>Aksi</th></tr>
+                                <tr><th>Waktu</th><th>Nama Siswa</th><th>Kelas</th><th>Periode</th><th>Status</th><th>Bukti Transfer</th><th>Aksi</th></tr>
                             </thead>
                             <tbody>
                                 {filteredPayments.map(p => {
@@ -550,7 +482,48 @@ export default function AdminView({ user, onShowToast }) {
                                         </tr>
                                     );
                                 })}
-                                {filteredPayments.length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>Tidak ada data pembayaran.</td></tr>}
+                                {filteredPayments.length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>Belum ada transaksi pembayaran pada periode ini.</td></tr>}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                {/* Section 2: Data Siswa Belum Bayar */}
+                <section id="unpaid" className="card glass" style={{ padding: '24px', marginBottom: '28px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h2 style={{ color: '#f87171' }}>⚠️ Daftar Siswa Belum Bayar — Bulan {bulanNamaList[targetMonth]} ({unpaidStudents.length} Siswa)</h2>
+                    </div>
+
+                    <div className="table-responsive">
+                        <table className="data-table">
+                            <thead>
+                                <tr><th>#</th><th>NISN</th><th>Nama Siswa</th><th>Kelas</th><th>No WA Ortu</th><th>Aksi Cepat</th></tr>
+                            </thead>
+                            <tbody>
+                                {unpaidStudents.map((s, i) => (
+                                    <tr key={s.id}>
+                                        <td>{i + 1}</td>
+                                        <td><code>{s.nisn || s.nis}</code></td>
+                                        <td><strong>{s.name}</strong></td>
+                                        <td><span className="kelas-badge">{s.kelas || 'X TKR 2'}</span></td>
+                                        <td>{s.parent_wa}</td>
+                                        <td style={{ display: 'flex', gap: '6px' }}>
+                                            <button onClick={() => setUploadModal({ open: true, student: s, file: null, month: targetMonth, year: currentYear })} className="btn btn-success btn-sm" title="Input Pembayaran">
+                                                <Upload size={12} /> Upload Bukti
+                                            </button>
+                                            <button onClick={() => handleSendWa(s)} className="btn btn-wa btn-sm" title="Kirim WhatsApp Reminder">
+                                                <MessageCircle size={12} /> Kirim WA
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {unpaidStudents.length === 0 && (
+                                    <tr>
+                                        <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: '#34d399' }}>
+                                            🎉 Luar biasa! Seluruh siswa telah melunasi pembayaran SPP untuk bulan ini.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -630,6 +603,71 @@ export default function AdminView({ user, onShowToast }) {
                             >
                                 Tutup
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Master Data Siswa (Di Database) */}
+            {showMasterModal && (
+                <div className="modal-overlay" onClick={() => setShowMasterModal(false)}>
+                    <div className="modal-card glass" style={{ maxWidth: '800px', width: '95%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px' }}>📁 Master Data Siswa (Database: {students.length} Siswa)</h3>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="btn btn-ghost btn-sm" onClick={handleCleanStudents} title="Urutkan nama A-Z">
+                                    <RefreshCw size={14} color="#6366f1" /> Clean A-Z
+                                </button>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setShowImportModal(true)}>
+                                    <FileSpreadsheet size={14} color="#10b981" /> Import Excel
+                                </button>
+                                <button className="btn btn-primary btn-sm" onClick={() => setShowAddForm(!showAddForm)}>
+                                    <Plus size={14} /> Tambah Siswa
+                                </button>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setShowMasterModal(false)}>✖</button>
+                            </div>
+                        </div>
+
+                        {showAddForm && (
+                            <form onSubmit={handleAddStudent} className="glass-inner" style={{ marginBottom: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'end', padding: '12px' }}>
+                                <div><label style={{ fontSize: '11px', color: '#94a3b8' }}>NISN</label><input type="text" placeholder="NISN" value={newStudent.nisn} onChange={e => setNewStudent({ ...newStudent, nisn: e.target.value })} required /></div>
+                                <div><label style={{ fontSize: '11px', color: '#94a3b8' }}>Nama</label><input type="text" placeholder="Nama Lengkap" value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })} required /></div>
+                                <div><label style={{ fontSize: '11px', color: '#94a3b8' }}>No WA</label><input type="text" placeholder="08xxxxxxxxxx" value={newStudent.parent_wa} onChange={e => setNewStudent({ ...newStudent, parent_wa: e.target.value })} required /></div>
+                                <div><label style={{ fontSize: '11px', color: '#94a3b8' }}>Kelas</label>
+                                    <select className="form-select" value={newStudent.kelas} onChange={e => setNewStudent({ ...newStudent, kelas: e.target.value })}>
+                                        <option value="X TKR 2">X TKR 2</option>
+                                        <option value="XI TKR 1">XI TKR 1</option>
+                                        <option value="XII TKR 1">XII TKR 1</option>
+                                    </select>
+                                </div>
+                                <button type="submit" className="btn btn-success btn-sm">Simpan</button>
+                            </form>
+                        )}
+
+                        <div className="table-responsive">
+                            <table className="data-table">
+                                <thead>
+                                    <tr><th>#</th><th>NISN</th><th>Nama Siswa</th><th>Kelas</th><th>No WA Ortu</th><th>Aksi</th></tr>
+                                </thead>
+                                <tbody>
+                                    {students.map((s, i) => (
+                                        <tr key={s.id}>
+                                            <td>{i + 1}</td>
+                                            <td><code>{s.nisn || s.nis}</code></td>
+                                            <td><strong>{s.name}</strong></td>
+                                            <td><span className="kelas-badge">{s.kelas || 'X TKR 2'}</span></td>
+                                            <td>{s.parent_wa}</td>
+                                            <td>
+                                                {user.role === 'admin' && (
+                                                    <button onClick={() => handleDeleteStudent(s.id, s.name)} className="btn btn-danger btn-sm" title="Hapus">
+                                                        <Trash2 size={12} /> Hapus
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
