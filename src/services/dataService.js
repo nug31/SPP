@@ -23,6 +23,8 @@ const INITIAL_PAYMENTS = [];
 export const deduplicateAndSortStudents = (studentList) => {
     if (!Array.isArray(studentList)) return [];
     const map = new Map();
+    const usedIds = new Set();
+    
     studentList.forEach(s => {
         const nisnVal = String(s.nisn || s.nis || '').trim();
         const nameVal = String(s.name || '').trim();
@@ -31,9 +33,20 @@ export const deduplicateAndSortStudents = (studentList) => {
         // Gunakan key NISN jika ada, jika tidak pakai Name
         const key = nisnVal ? nisnVal.toLowerCase() : nameVal.toLowerCase();
         if (!map.has(key)) {
+            let uniqueId = s.id;
+            if (!uniqueId) uniqueId = Date.now();
+            
+            // Fix ID Collisions (for corrupted data where students share same ID)
+            while (usedIds.has(uniqueId)) {
+                uniqueId = typeof uniqueId === 'number' 
+                    ? uniqueId + Math.floor(Math.random() * 10000) + 1 
+                    : uniqueId + '_' + Math.random().toString(36).substr(2, 5);
+            }
+            usedIds.add(uniqueId);
+
             map.set(key, {
                 ...s,
-                id: s.id || Date.now() + Math.floor(Math.random() * 1000),
+                id: uniqueId,
                 nisn: nisnVal,
                 nis: nisnVal,
                 name: nameVal,
@@ -93,7 +106,7 @@ export const saveStudent = (newStudent) => {
         updated = students;
     } else {
         const item = {
-            id: Date.now() + Math.floor(Math.random() * 1000),
+            id: Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 9),
             nisn: idVal,
             nis: idVal,
             name: nameVal,
