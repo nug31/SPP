@@ -280,8 +280,8 @@ export default function AdminView({ user, onShowToast }) {
 
     // Stats Calculation (Dynamic for selected month or overall)
     const bulanNamaList = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    
-    const relevantPayments = filterBulan 
+
+    const relevantPayments = filterBulan
         ? payments.filter(p => p.month === parseInt(filterBulan))
         : payments;
 
@@ -342,22 +342,24 @@ export default function AdminView({ user, onShowToast }) {
         const num = student.parent_wa.replace(/[^0-9]/g, '');
         const formattedNum = num.startsWith('0') ? '62' + num.slice(1) : num;
         const bulanNama = bulanNamaList[filterBulan ? parseInt(filterBulan) : currentMonth];
+        const waliKelas = user?.name || user?.username || 'Wali Kelas';
+        const kelas = student.kelas || '';
         const text = encodeURIComponent(
 `Assalamu'alaikum Wr. Wb.
 
 Kepada Yth,
-Bapak/Ibu Wali Murid dari *${student.name}*
-${student.kelas ? `Kelas: *${student.kelas}*` : ''}
+Bapak/Ibu Wali Murid dari *${student.name}*${kelas ? `\nKelas: *${kelas}*` : ''}
 
 Dengan hormat,
-Kami dari pihak sekolah ingin menyampaikan bahwa hingga saat ini, pembayaran SPP Bulan *${bulanNama}* atas nama siswa tersebut di atas senilai *Rp 700.000* belum kami terima.
+Saya selaku Wali Kelas ingin menyampaikan bahwa hingga saat ini, pembayaran SPP Bulan *${bulanNama}* atas nama putra/putri Bapak/Ibu senilai *Rp 700.000* belum kami terima.
 
-Mohon kiranya Bapak/Ibu berkenan untuk segera melakukan pembayaran melalui portal *SatuSPP* atau menghubungi pihak sekolah jika ada kendala.
+Mohon kiranya Bapak/Ibu berkenan untuk segera melakukan pembayaran melalui portal *SatuSPP* atau menghubungi saya langsung jika ada kendala.
 
-Atas perhatian dan kerjasamanya, kami ucapkan terima kasih yang sebesar-besarnya. 🙏
+Atas perhatian dan kerjasamanya, saya ucapkan terima kasih yang sebesar-besarnya. 🙏
 
 Wassalamu'alaikum Wr. Wb.
-_Administrasi Sekolah_`
+_${waliKelas}_
+_Wali Kelas ${kelas}_`
         );
         window.open(`https://wa.me/${formattedNum}?text=${text}`, '_blank');
     };
