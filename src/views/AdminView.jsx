@@ -207,11 +207,22 @@ export default function AdminView({ user, onShowToast }) {
         return matchSearch && matchKelas && matchBulan && matchStatus;
     });
 
-    // Stats
-    const thisMonthPayments = payments.filter(p => p.month === currentMonth && p.year === currentYear);
-    const lunasCount = thisMonthPayments.filter(p => p.status === 'lunas').length;
-    const pendingCount = thisMonthPayments.filter(p => p.status === 'pending').length;
-    const belumCount = Math.max(0, students.length - thisMonthPayments.length);
+    // Stats Calculation (Dynamic for selected month or overall)
+    const bulanNamaList = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    
+    const relevantPayments = filterBulan 
+        ? payments.filter(p => p.month === parseInt(filterBulan))
+        : payments;
+
+    const lunasCount = relevantPayments.filter(p => p.status === 'lunas').length;
+    const pendingCount = relevantPayments.filter(p => p.status === 'pending').length;
+    const belumCount = Math.max(0, students.length - lunasCount);
+    const totalTerkumpul = lunasCount * 700000;
+
+    const labelLunas = filterBulan ? `Lunas Bulan ${bulanNamaList[filterBulan]}` : 'Total Transaksi Lunas';
+    const labelPending = filterBulan ? `Menunggu (Bulan ${bulanNamaList[filterBulan]})` : 'Menunggu Verifikasi';
+    const labelBelum = filterBulan ? `Belum Bayar (Bulan ${bulanNamaList[filterBulan]})` : 'Belum Lunas';
+    const labelTerkumpul = filterBulan ? `Terkumpul Bulan ${bulanNamaList[filterBulan]}` : 'Total Terkumpul';
 
     const handleConfirm = async (id) => {
         await updatePaymentStatus(id, 'lunas');
@@ -306,19 +317,19 @@ export default function AdminView({ user, onShowToast }) {
                     </div>
                     <div className="stat-card stat-green">
                         <div className="stat-icon"><CheckCircle2 color="#10b981" size={28} /></div>
-                        <div className="stat-info"><div className="stat-num">{lunasCount}</div><div className="stat-label">Lunas Bulan Ini</div></div>
+                        <div className="stat-info"><div className="stat-num">{lunasCount}</div><div className="stat-label">{labelLunas}</div></div>
                     </div>
                     <div className="stat-card stat-yellow">
                         <div className="stat-icon"><Clock color="#f59e0b" size={28} /></div>
-                        <div className="stat-info"><div className="stat-num">{pendingCount}</div><div className="stat-label">Menunggu Verifikasi</div></div>
+                        <div className="stat-info"><div className="stat-num">{pendingCount}</div><div className="stat-label">{labelPending}</div></div>
                     </div>
                     <div className="stat-card stat-red">
                         <div className="stat-icon"><XCircle color="#ef4444" size={28} /></div>
-                        <div className="stat-info"><div className="stat-num">{belumCount}</div><div className="stat-label">Belum Bayar</div></div>
+                        <div className="stat-info"><div className="stat-num">{belumCount}</div><div className="stat-label">{labelBelum}</div></div>
                     </div>
                     <div className="stat-card stat-purple">
                         <div className="stat-icon"><DollarSign color="#c084fc" size={28} /></div>
-                        <div className="stat-info"><div className="stat-num">Rp {(lunasCount * 700000).toLocaleString('id-ID')}</div><div className="stat-label">Terkumpul Bulan Ini</div></div>
+                        <div className="stat-info"><div className="stat-num">Rp {totalTerkumpul.toLocaleString('id-ID')}</div><div className="stat-label">{labelTerkumpul}</div></div>
                     </div>
                 </div>
 
