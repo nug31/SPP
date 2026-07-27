@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents, addPayment, deletePayment, importStudents } from '../services/dataService';
 import { generatePaymentPdf } from '../utils/pdfGenerator';
-import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageCircle, Trash2, FileText, Upload, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageCircle, Trash2, FileText, Upload, FileSpreadsheet, RefreshCw, Sparkles, Check } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import Tesseract from 'tesseract.js';
 
 export default function AdminView({ user, onShowToast }) {
     const [students, setStudents] = useState([]);
@@ -22,8 +23,10 @@ export default function AdminView({ user, onShowToast }) {
     const [rejectModal, setRejectModal] = useState({ open: false, paymentId: null, studentName: '', reason: '' });
     // Preview Proof Modal state
     const [previewModal, setPreviewModal] = useState({ open: false, url: '', type: 'image/png', studentName: '' });
-    // Upload Modal state
+    // Upload Modal state & OCR auto-detection state
     const [uploadModal, setUploadModal] = useState({ open: false, student: null, file: null, month: new Date().getMonth() + 1, year: new Date().getFullYear() });
+    const [ocrScanning, setOcrScanning] = useState(false);
+    const [ocrMatchStatus, setOcrMatchStatus] = useState(null);
 
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
@@ -71,25 +74,72 @@ export default function AdminView({ user, onShowToast }) {
         }
     };
 
-    // Handle Admin Upload Payment
-    const handleAdminUpload = (e) => {
-        e.preventDefault();
-        if (!uploadModal.file || !uploadModal.student) return;
+    // Handle File Change with AI OCR Auto-Detection
+    const handleReceiptFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-            await addPayment({
-                student_id: uploadModal.student.id,
-                month: uploadModal.month,
-                year: uploadModal.year,
-                proof_file: reader.result,
-                status: 'lunas'
-            });
-            setUploadModal({ open: false, student: null, file: null, month: currentMonth, year: currentYear });
-            await refreshData();
-            onShowToast('✅ Bukti pembayaran berhasil diunggah & status lunas.', 'success');
-        };
-        reader.readAsDataURL(uploadModal.file);
+        setUploadModal(prev => ({ ...prev, file }));
+        setOcrMatchStatus(null);
+
+        // Run OCR if file is an image
+        if (file.type.startsWith('image/')) {
+            setOcrScanning(true);
+            try {
+                const worker = await Tesseract.createWorker('eng');
+                const ret = await worker.recognize(file);
+                await worker.terminate();
+
+                const text = (ret.data.text || '').toLowerCase();
+
+                let matchedStudent = null;
+                let highestScore = 0;
+
+                for (const s of students) {
+                    const fullName = (s.name || '').toLowerCase();
+                    const nameParts = fullName.split(/\s+/).filter(p => p.length > 2);
+                    const nisn = (s.nisn || s.nis || '').toLowerCase();
+
+                    let score = 0;
+
+                    if (nisn && nisn.length > 3 && text.includes(nisn)) {
+                        score += 100;
+                    }
+
+                    if (fullName && text.includes(fullName)) {
+                        score += 80;
+                    } else {
+                        for (const part of nameParts) {
+                            if (text.includes(part)) {
+                                score += 25;
+                            }
+                        }
+                    }
+
+                    if (score > highestScore && score >= 25) {
+                        highestScore = score;
+                        matchedStudent = s;
+                    }
+                }
+
+                if (matchedStudent) {
+                    setUploadModal(prev => ({ ...prev, student: matchedStudent }));
+                    setOcrMatchStatus({
+                        found: true,
+                        studentName: matchedStudent.name,
+                        score: highestScore
+                    });
+                    onShowToast(`✨ Terdeteksi Otomatis: ${matchedStudent.name}`, 'success');
+                } else {
+                    setOcrMatchStatus({ found: false });
+                }
+            } catch (err) {
+                console.error('OCR Error:', err);
+                setOcrMatchStatus({ found: false });
+            } finally {
+                setOcrScanning(false);
+            }
+        }
     };
 
     // Handle Excel File Import
@@ -338,7 +388,10 @@ export default function AdminView({ user, onShowToast }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h2>👨‍🎓 Data Siswa</h2>
                         {user.role === 'admin' && (
-                            <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <button className="btn btn-primary btn-sm" onClick={() => { setUploadModal({ open: true, student: null, file: null, month: currentMonth, year: currentYear }); setOcrMatchStatus(null); }}>
+                                    <Sparkles size={14} /> Upload Bukti TF (Auto AI Detect)
+                                </button>
                                 <button className="btn btn-ghost btn-sm" onClick={handleCleanStudents} title="Urutkan nama A-Z dan bersihkan duplikat">
                                     <RefreshCw size={14} color="#6366f1" /> Rapid Clean & Urutkan
                                 </button>
@@ -629,11 +682,81 @@ export default function AdminView({ user, onShowToast }) {
             {/* Modal Upload Bukti Pembayaran */}
             {uploadModal.open && (
                 <div className="modal-overlay">
-                    <div className="modal-card glass" style={{ maxWidth: '400px' }}>
+                    <div className="modal-card glass" style={{ maxWidth: '440px' }}>
                         <h3>📤 Upload Bukti Pembayaran</h3>
-                        <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '16px' }}>Siswa: {uploadModal.student?.name}</p>
-                        <form onSubmit={handleAdminUpload}>
+                        <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '16px' }}>
+                            Upload foto resi/bukti transfer m-banking. Sistem akan otomatis mendeteksi nama siswa!
+                        </p>
+
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!uploadModal.file || !uploadModal.student) {
+                                onShowToast('⚠️ Silakan pilih file dan siswa terlebih dahulu.', 'warning');
+                                return;
+                            }
+                            const reader = new FileReader();
+                            reader.onloadend = async () => {
+                                await addPayment({
+                                    student_id: uploadModal.student.id,
+                                    month: uploadModal.month,
+                                    year: uploadModal.year,
+                                    proof_file: reader.result,
+                                    status: 'lunas'
+                                });
+                                setUploadModal({ open: false, student: null, file: null, month: currentMonth, year: currentYear });
+                                setOcrMatchStatus(null);
+                                await refreshData();
+                                onShowToast('✅ Bukti pembayaran berhasil diunggah & status lunas.', 'success');
+                            };
+                            reader.readAsDataURL(uploadModal.file);
+                        }}>
+                            {/* File Picker first for OCR auto-detection */}
+                            <div className="form-group" style={{ marginBottom: '16px' }}>
+                                <label>Pilih Foto Resi / Bukti Transfer</label>
+                                <input
+                                    type="file"
+                                    accept="image/*,.pdf"
+                                    onChange={handleReceiptFileChange}
+                                    required
+                                    className="form-select"
+                                />
+                                {ocrScanning && (
+                                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#818cf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <RefreshCw size={14} className="spin" /> 🤖 Mengakses AI OCR untuk mendeteksi nama di foto resi...
+                                    </div>
+                                )}
+                                {ocrMatchStatus?.found && (
+                                    <div style={{ marginTop: '8px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Sparkles size={14} /> Terdeteksi Otomatis: <strong>{ocrMatchStatus.studentName}</strong>
+                                    </div>
+                                )}
+                                {ocrMatchStatus && !ocrMatchStatus.found && !ocrScanning && (
+                                    <div style={{ marginTop: '8px', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid #f59e0b', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', color: '#fbbf24' }}>
+                                        ℹ️ Nama tidak otomatis terdeteksi. Silakan pilih siswa secara manual di bawah.
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="form-group" style={{ marginBottom: '12px' }}>
+                                <label>Nama Siswa</label>
+                                <select
+                                    className="form-select"
+                                    value={uploadModal.student?.id || ''}
+                                    onChange={e => {
+                                        const selectedId = parseInt(e.target.value);
+                                        const found = students.find(s => s.id === selectedId);
+                                        setUploadModal({ ...uploadModal, student: found || null });
+                                    }}
+                                    required
+                                >
+                                    <option value="">-- Pilih Siswa --</option>
+                                    {students.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name} ({s.kelas || 'X TKR 2'}) - NISN: {s.nisn || s.nis}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: '16px' }}>
                                 <label>Bulan Pembayaran</label>
                                 <select className="form-select" value={uploadModal.month} onChange={e => setUploadModal({ ...uploadModal, month: parseInt(e.target.value) })}>
                                     {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((b, i) => (
@@ -641,19 +764,12 @@ export default function AdminView({ user, onShowToast }) {
                                     ))}
                                 </select>
                             </div>
-                            <div className="form-group" style={{ marginBottom: '16px' }}>
-                                <label>Pilih File / Foto</label>
-                                <input
-                                    type="file"
-                                    accept="image/*,.pdf"
-                                    onChange={(e) => setUploadModal({ ...uploadModal, file: e.target.files[0] })}
-                                    required
-                                    className="form-select"
-                                />
-                            </div>
+
                             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                <button type="button" className="btn btn-ghost" onClick={() => setUploadModal({ open: false, student: null, file: null, month: currentMonth, year: currentYear })}>Batal</button>
-                                <button type="submit" className="btn btn-success">Upload & Lunas</button>
+                                <button type="button" className="btn btn-ghost" onClick={() => { setUploadModal({ open: false, student: null, file: null, month: currentMonth, year: currentYear }); setOcrMatchStatus(null); }}>Batal</button>
+                                <button type="submit" className="btn btn-success" disabled={ocrScanning || !uploadModal.student || !uploadModal.file}>
+                                    Upload & Set Lunas
+                                </button>
                             </div>
                         </form>
                     </div>
