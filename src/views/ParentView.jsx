@@ -9,7 +9,6 @@ export default function ParentView({ onShowToast }) {
     const [nisnSearch, setNisnSearch] = useState('');
     const [searchedStudent, setSearchedStudent] = useState(null);
     const [searchErr, setSearchErr] = useState('');
-    const [selectedFile, setSelectedFile] = useState(null);
     const [previewModal, setPreviewModal] = useState({ open: false, url: '', type: 'image/png' });
 
     const currentMonth = new Date().getMonth() + 1;
@@ -31,27 +30,7 @@ export default function ParentView({ onShowToast }) {
         }
     };
 
-    const handleUpload = (e) => {
-        e.preventDefault();
-        if (!selectedFile || !searchedStudent) return;
 
-        // Convert file preview to data URL
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            addPayment({
-                student_id: searchedStudent.id,
-                month: currentMonth,
-                year: currentYear,
-                proof_file: reader.result
-            });
-
-            setSelectedFile(null);
-            onShowToast('✅ Bukti pembayaran berhasil diunggah dan sedang menunggu konfirmasi admin.', 'success');
-            // Trigger confetti
-            confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
-        };
-        reader.readAsDataURL(selectedFile);
-    };
 
     // Helper untuk melihat bukti transfer (Modal + Blob URL safe)
     const handleViewProof = (proofFile) => {
@@ -104,12 +83,7 @@ export default function ParentView({ onShowToast }) {
                         <span className="step-arrow">➔</span>
                         <div className={`step-item ${isStep1Done && !isStep2Done ? 'active' : (isStep2Done ? 'completed' : '')}`}>
                             <span className="step-num">{isStep2Done ? '✓' : '2'}</span>
-                            <span>Upload Bukti</span>
-                        </div>
-                        <span className="step-arrow">➔</span>
-                        <div className={`step-item ${isStep2Done && currentPayment?.status === 'lunas' ? 'completed' : ''}`}>
-                            <span className="step-num">3</span>
-                            <span>Selesai</span>
+                            <span>Status Bayar</span>
                         </div>
                     </div>
 
@@ -165,26 +139,7 @@ export default function ParentView({ onShowToast }) {
                                 {!currentPayment && (
                                     <div>
                                         <span className="badge badge-danger"><AlertCircle size={12} /> Belum Dibayar</span>
-                                        <form onSubmit={handleUpload} style={{ marginTop: '14px' }}>
-                                            <div className="form-group">
-                                                <label style={{ fontSize: '13px', fontWeight: '600', color: '#cbd5e1' }}>📎 Pilih Foto Bukti Transfer / Struk Bank</label>
-                                                <div className="file-drop-zone" style={{ padding: '20px' }}>
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*,.pdf"
-                                                        onChange={(e) => setSelectedFile(e.target.files[0])}
-                                                        required
-                                                    />
-                                                    <span className="drop-icon"><UploadCloud size={32} color="#818cf8" /></span>
-                                                    <span id="file-name-display" style={{ fontWeight: selectedFile ? '600' : '400', color: selectedFile ? '#34d399' : '#9ca3af' }}>
-                                                        {selectedFile ? `✅ ${selectedFile.name}` : 'Tekan di sini untuk memilih foto bukti transfer dari HP'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <button type="submit" className="btn btn-success" style={{ fontSize: '15px', padding: '12px' }}>
-                                                🚀 Kirim Bukti Pembayaran
-                                            </button>
-                                        </form>
+                                        <p className="status-msg">Silakan lakukan pembayaran dan serahkan bukti transfer ke admin sekolah.</p>
                                     </div>
                                 )}
 
@@ -214,18 +169,7 @@ export default function ParentView({ onShowToast }) {
                                         <p className="status-msg" style={{ color: '#fca5a5' }}>
                                             Alasan: {currentPayment.reject_reason || 'Bukti transfer tidak jelas / tidak valid.'}
                                         </p>
-                                        <form onSubmit={handleUpload} style={{ marginTop: '14px' }}>
-                                            <div className="form-group">
-                                                <label>📎 Unggah Ulang Bukti Transfer</label>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*,.pdf"
-                                                    onChange={(e) => setSelectedFile(e.target.files[0])}
-                                                    required
-                                                />
-                                            </div>
-                                            <button type="submit" className="btn btn-success">Kirim Ulang Bukti</button>
-                                        </form>
+                                        <p className="status-msg">Silakan hubungi admin sekolah untuk menyelesaikan masalah ini.</p>
                                     </div>
                                 )}
                             </div>

@@ -151,7 +151,7 @@ export const addPayment = (paymentData) => {
     const newPayment = {
         id: Date.now(),
         ...paymentData,
-        status: 'pending',
+        status: paymentData.status || 'pending',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     };

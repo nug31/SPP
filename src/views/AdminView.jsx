@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents } from '../services/dataService';
+import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents, addPayment } from '../services/dataService';
 import { generatePaymentPdf } from '../utils/pdfGenerator';
 import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageCircle, Trash2, FileText, Upload, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -19,6 +19,8 @@ export default function AdminView({ user, onShowToast }) {
     const [rejectModal, setRejectModal] = useState({ open: false, paymentId: null, studentName: '', reason: '' });
     // Preview Proof Modal state
     const [previewModal, setPreviewModal] = useState({ open: false, url: '', type: 'image/png', studentName: '' });
+    // Upload Modal state
+    const [uploadModal, setUploadModal] = useState({ open: false, student: null, file: null, month: new Date().getMonth() + 1, year: new Date().getFullYear() });
 
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
@@ -52,6 +54,27 @@ export default function AdminView({ user, onShowToast }) {
             const fullUrl = proofFile.startsWith('http') || proofFile.startsWith('/') ? proofFile : '/uploads/' + proofFile;
             setPreviewModal({ open: true, url: fullUrl, rawData: fullUrl, type: 'image/png', studentName });
         }
+    };
+
+    // Handle Admin Upload Payment
+    const handleAdminUpload = (e) => {
+        e.preventDefault();
+        if (!uploadModal.file || !uploadModal.student) return;
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            addPayment({
+                student_id: uploadModal.student.id,
+                month: uploadModal.month,
+                year: uploadModal.year,
+                proof_file: reader.result,
+                status: 'lunas'
+            });
+            setUploadModal({ open: false, student: null, file: null, month: currentMonth, year: currentYear });
+            refreshData();
+            onShowToast('✅ Bukti pembayaran berhasil diunggah & status lunas.', 'success');
+        };
+        reader.readAsDataURL(uploadModal.file);
     };
 
     // Handle Excel File Upload
@@ -308,6 +331,9 @@ export default function AdminView({ user, onShowToast }) {
                                         <td><span className="kelas-badge">{s.kelas || 'X TKR 2'}</span></td>
                                         <td>{s.parent_wa}</td>
                                         <td style={{ display: 'flex', gap: '6px' }}>
+                                            <button onClick={() => setUploadModal({ open: true, student: s, file: null, month: currentMonth, year: currentYear })} className="btn btn-success btn-sm" title="Input Pembayaran">
+                                                <Upload size={12} /> Upload Bukti
+                                            </button>
                                             <button onClick={() => handleSendWa(s)} className="btn btn-wa btn-sm" title="Kirim WhatsApp Reminder">
                                                 <MessageCircle size={12} /> WA
                                             </button>
@@ -519,6 +545,40 @@ export default function AdminView({ user, onShowToast }) {
                                 Tutup
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Upload Bukti Pembayaran */}
+            {uploadModal.open && (
+                <div className="modal-overlay">
+                    <div className="modal-card glass" style={{ maxWidth: '400px' }}>
+                        <h3>📤 Upload Bukti Pembayaran</h3>
+                        <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '16px' }}>Siswa: {uploadModal.student?.name}</p>
+                        <form onSubmit={handleAdminUpload}>
+                            <div className="form-group" style={{ marginBottom: '12px' }}>
+                                <label>Bulan Pembayaran</label>
+                                <select className="form-select" value={uploadModal.month} onChange={e => setUploadModal({ ...uploadModal, month: parseInt(e.target.value) })}>
+                                    {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((b, i) => (
+                                        <option key={i} value={i + 1}>{b}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ marginBottom: '16px' }}>
+                                <label>Pilih File / Foto</label>
+                                <input
+                                    type="file"
+                                    accept="image/*,.pdf"
+                                    onChange={(e) => setUploadModal({ ...uploadModal, file: e.target.files[0] })}
+                                    required
+                                    className="form-select"
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                <button type="button" className="btn btn-ghost" onClick={() => setUploadModal({ open: false, student: null, file: null, month: currentMonth, year: currentYear })}>Batal</button>
+                                <button type="submit" className="btn btn-success">Upload & Lunas</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
