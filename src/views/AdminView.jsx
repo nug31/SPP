@@ -12,8 +12,9 @@ export default function AdminView({ user, onShowToast }) {
     const [filterKelas, setFilterKelas] = useState('');
     const [filterBulan, setFilterBulan] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
-    const [showAddForm, setShowAddForm] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [selectedExcelFile, setSelectedExcelFile] = useState(null);
+    const [importing, setImporting] = useState(false);
     const [newStudent, setNewStudent] = useState({ nisn: '', name: '', parent_wa: '', kelas: 'X TKR 2' });
 
     // Reject Modal state
@@ -90,11 +91,14 @@ export default function AdminView({ user, onShowToast }) {
         reader.readAsDataURL(uploadModal.file);
     };
 
-    // Handle Excel File Upload
-    const handleFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    // Handle Excel File Import
+    const handleExecuteImport = () => {
+        if (!selectedExcelFile) {
+            onShowToast('⚠️ Silakan pilih file Excel terlebih dahulu.', 'warning');
+            return;
+        }
 
+        setImporting(true);
         const reader = new FileReader();
         reader.onload = (evt) => {
             try {
@@ -105,6 +109,7 @@ export default function AdminView({ user, onShowToast }) {
                 const data = XLSX.utils.sheet_to_json(ws);
 
                 const processExcel = async () => {
+                    let count = 0;
                     for (const row of data) {
                         const nisnVal = String(row.nisn || row.NISN || row.nis || row.NIS || '').trim();
                         const nameVal = String(row.name || row.NAMA || row.Nama || '').trim();
@@ -118,16 +123,19 @@ export default function AdminView({ user, onShowToast }) {
                     }
                     await deduplicateStudents();
                     await refreshData();
+                    setImporting(false);
+                    setSelectedExcelFile(null);
                     setShowImportModal(false);
-                    onShowToast(`✅ Berhasil mengimpor & mengurutkan ${count} data siswa dari Excel!`, 'success');
+                    onShowToast(`✅ Berhasil mengimpor ${count} data siswa dari Excel!`, 'success');
                 };
                 processExcel();
             } catch (err) {
                 console.error(err);
+                setImporting(false);
                 onShowToast('❌ Gagal membaca file Excel. Pastikan format kolom benar.', 'danger');
             }
         };
-        reader.readAsBinaryString(file);
+        reader.readAsBinaryString(selectedExcelFile);
     };
 
     // Download Excel Template
@@ -544,7 +552,7 @@ export default function AdminView({ user, onShowToast }) {
             {/* Modal Import Excel */}
             {showImportModal && (
                 <div className="modal-overlay">
-                    <div className="modal-card glass" style={{ maxWidth: '500px' }}>
+                    <div className="modal-card glass" style={{ maxWidth: '520px' }}>
                         <h3>📥 Import Data Siswa dari Excel</h3>
                         <p style={{ fontSize: '12px', color: '#94a3b8', margin: '8px 0 16px' }}>
                             Upload file Excel (<code>.xlsx</code> / <code>.xls</code>) yang berisi data siswa real.
@@ -562,19 +570,24 @@ export default function AdminView({ user, onShowToast }) {
                             <input
                                 type="file"
                                 accept=".xlsx, .xls"
-                                onChange={handleFileUpload}
+                                onChange={e => setSelectedExcelFile(e.target.files[0] || null)}
                                 className="form-select"
                                 style={{ width: '100%', padding: '10px' }}
                             />
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
                             <button onClick={downloadTemplate} className="btn btn-ghost btn-sm">
                                 📄 Unduh Template Excel
                             </button>
-                            <button onClick={() => setShowImportModal(false)} className="btn btn-ghost btn-sm">
-                                Tutup
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => { setShowImportModal(false); setSelectedExcelFile(null); }} className="btn btn-ghost btn-sm">
+                                    Batal
+                                </button>
+                                <button onClick={handleExecuteImport} className="btn btn-success btn-sm" disabled={!selectedExcelFile || importing}>
+                                    {importing ? '⏳ Mengimpor...' : '🚀 Import Data'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
