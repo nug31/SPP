@@ -1,11 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getStudents, getPayments } from '../services/dataService';
 import { DollarSign, PieChart, TrendingUp, Users, CheckCircle2 } from 'lucide-react';
 
 export default function BendaharaView({ user }) {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    const students = getStudents();
-    const payments = getPayments();
+    const [students, setStudents] = useState([]);
+    const [payments, setPayments] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [st, pa] = await Promise.all([getStudents(), getPayments()]);
+                setStudents(st);
+                setPayments(pa);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     const bulanNama = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 

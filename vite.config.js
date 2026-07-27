@@ -5,5 +5,12 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist'
+  },
+  server: {
+    proxy: {
+      '/login': 'http://localhost:3001',
+      '/admin': 'http://localhost:3001',
+      '/logout': 'http://localhost:3001',
+    }
   }
 });

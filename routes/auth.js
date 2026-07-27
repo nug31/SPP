@@ -29,11 +29,17 @@ router.post('/login', async (req, res) => {
         .single();
 
     if (error || !user) {
+        if (req.headers['content-type']?.includes('application/json')) {
+            return res.status(401).json({ error: 'Email atau password salah.' });
+        }
         return res.render('login', { error: 'Email atau password salah.' });
     }
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
+        if (req.headers['content-type']?.includes('application/json')) {
+            return res.status(401).json({ error: 'Email atau password salah.' });
+        }
         return res.render('login', { error: 'Email atau password salah.' });
     }
 
@@ -46,6 +52,11 @@ router.post('/login', async (req, res) => {
         kelas: user.kelas,
         student_id: user.student_id
     };
+
+    // Jika request dari React (JSON), kembalikan data user
+    if (req.headers['content-type']?.includes('application/json')) {
+        return res.json(req.session.user);
+    }
 
     redirectByRole(res, user.role);
 });

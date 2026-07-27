@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents, addPayment, deletePayment } from '../services/dataService';
 import { generatePaymentPdf } from '../utils/pdfGenerator';
 import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageCircle, Trash2, FileText, Upload, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function AdminView({ user, onShowToast }) {
-    const [students, setStudents] = useState(getStudents());
-    const [payments, setPayments] = useState(getPayments());
+    const [students, setStudents] = useState([]);
+    const [payments, setPayments] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filterKelas, setFilterKelas] = useState('');
     const [filterBulan, setFilterBulan] = useState('');
@@ -25,10 +26,22 @@ export default function AdminView({ user, onShowToast }) {
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
 
-    const refreshData = () => {
-        setStudents(getStudents());
-        setPayments(getPayments());
+    const refreshData = async () => {
+        setLoading(true);
+        try {
+            const [st, pa] = await Promise.all([getStudents(), getPayments()]);
+            setStudents(st);
+            setPayments(pa);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    useEffect(() => {
+        refreshData();
+    }, []);
 
     // Helper untuk melihat bukti transfer (Modal + Blob URL safe)
     const handleViewProof = (proofFile, studentName = '') => {
@@ -62,8 +75,8 @@ export default function AdminView({ user, onShowToast }) {
         if (!uploadModal.file || !uploadModal.student) return;
 
         const reader = new FileReader();
-        reader.onloadend = () => {
-            addPayment({
+        reader.onloadend = async () => {
+            await addPayment({
                 student_id: uploadModal.student.id,
                 month: uploadModal.month,
                 year: uploadModal.year,
@@ -71,7 +84,7 @@ export default function AdminView({ user, onShowToast }) {
                 status: 'lunas'
             });
             setUploadModal({ open: false, student: null, file: null, month: currentMonth, year: currentYear });
-            refreshData();
+            await refreshData();
             onShowToast('✅ Bukti pembayaran berhasil diunggah & status lunas.', 'success');
         };
         reader.readAsDataURL(uploadModal.file);
@@ -91,23 +104,24 @@ export default function AdminView({ user, onShowToast }) {
                 const ws = wb.Sheets[wsname];
                 const data = XLSX.utils.sheet_to_json(ws);
 
-                let count = 0;
-                data.forEach(row => {
-                    const nisnVal = String(row.nisn || row.NISN || row.nis || row.NIS || '').trim();
-                    const nameVal = String(row.name || row.NAMA || row.Nama || '').trim();
-                    const waVal = String(row.parent_wa || row.WA || row.NO_WA || row.No_WA || row.Phone || '').trim();
-                    const kelasVal = String(row.kelas || row.KELAS || row.Kelas || 'X TKR 2').trim();
+                const processExcel = async () => {
+                    for (const row of data) {
+                        const nisnVal = String(row.nisn || row.NISN || row.nis || row.NIS || '').trim();
+                        const nameVal = String(row.name || row.NAMA || row.Nama || '').trim();
+                        const waVal = String(row.parent_wa || row.WA || row.NO_WA || row.No_WA || row.Phone || '').trim();
+                        const kelasVal = String(row.kelas || row.KELAS || row.Kelas || 'X TKR 2').trim();
 
-                    if (nameVal || nisnVal) {
-                        saveStudent({ nisn: nisnVal, name: nameVal, parent_wa: waVal, kelas: kelasVal });
-                        count++;
+                        if (nameVal || nisnVal) {
+                            await saveStudent({ nisn: nisnVal, name: nameVal, parent_wa: waVal, kelas: kelasVal });
+                            count++;
+                        }
                     }
-                });
-
-                deduplicateStudents();
-                refreshData();
-                setShowImportModal(false);
-                onShowToast(`✅ Berhasil mengimpor & mengurutkan ${count} data siswa dari Excel!`, 'success');
+                    await deduplicateStudents();
+                    await refreshData();
+                    setShowImportModal(false);
+                    onShowToast(`✅ Berhasil mengimpor & mengurutkan ${count} data siswa dari Excel!`, 'success');
+                };
+                processExcel();
             } catch (err) {
                 console.error(err);
                 onShowToast('❌ Gagal membaca file Excel. Pastikan format kolom benar.', 'danger');
@@ -129,17 +143,17 @@ export default function AdminView({ user, onShowToast }) {
     };
 
     // Clean & Sort Students Action
-    const handleCleanStudents = () => {
-        const cleaned = deduplicateStudents();
-        setStudents(cleaned);
-        onShowToast(`🔄 Berhasil merapikan data: ${cleaned.length} siswa unik terurut A-Z.`, 'success');
+    const handleCleanStudents = async () => {
+        await deduplicateStudents();
+        await refreshData();
+        onShowToast(`🔄 Berhasil merapikan data.`, 'success');
     };
 
     // Clear All Payments Action
-    const handleClearPayments = () => {
+    const handleClearPayments = async () => {
         if (window.confirm('Yakin ingin menghapus seluruh data pembayaran dummy? Data pembayaran akan menjadi kosong dan siap diisi data real.')) {
-            clearAllPayments();
-            refreshData();
+            await clearAllPayments();
+            await refreshData();
             onShowToast('🗑️ Seluruh data pembayaran dummy telah dihapus.', 'info');
         }
     };
@@ -169,9 +183,9 @@ export default function AdminView({ user, onShowToast }) {
     const pendingCount = thisMonthPayments.filter(p => p.status === 'pending').length;
     const belumCount = Math.max(0, students.length - thisMonthPayments.length);
 
-    const handleConfirm = (id) => {
-        updatePaymentStatus(id, 'lunas');
-        refreshData();
+    const handleConfirm = async (id) => {
+        await updatePaymentStatus(id, 'lunas');
+        await refreshData();
         onShowToast('✅ Pembayaran berhasil dikonfirmasi LUNAS!', 'success');
     };
 
@@ -179,35 +193,35 @@ export default function AdminView({ user, onShowToast }) {
         setRejectModal({ open: true, paymentId: id, studentName: name, reason: '' });
     };
 
-    const handleConfirmReject = (e) => {
+    const handleConfirmReject = async (e) => {
         e.preventDefault();
-        updatePaymentStatus(rejectModal.paymentId, 'ditolak', rejectModal.reason);
+        await updatePaymentStatus(rejectModal.paymentId, 'ditolak', rejectModal.reason);
         setRejectModal({ open: false, paymentId: null, studentName: '', reason: '' });
-        refreshData();
+        await refreshData();
         onShowToast('❌ Pembayaran telah ditolak.', 'danger');
     };
 
-    const handleAddStudent = (e) => {
+    const handleAddStudent = async (e) => {
         e.preventDefault();
-        saveStudent(newStudent);
+        await saveStudent(newStudent);
         setNewStudent({ nisn: '', name: '', parent_wa: '', kelas: 'X TKR 2' });
         setShowAddForm(false);
-        refreshData();
+        await refreshData();
         onShowToast('✅ Data siswa berhasil ditambahkan & diurutkan!', 'success');
     };
 
-    const handleDeleteStudent = (id, name) => {
+    const handleDeleteStudent = async (id, name) => {
         if (window.confirm(`Yakin hapus siswa ${name}?`)) {
-            deleteStudent(id);
-            refreshData();
+            await deleteStudent(id);
+            await refreshData();
             onShowToast('🗑️ Data siswa telah dihapus.', 'info');
         }
     };
 
-    const handleDeletePayment = (id) => {
+    const handleDeletePayment = async (id) => {
         if (window.confirm('Yakin ingin menghapus data pembayaran ini?')) {
-            deletePayment(id);
-            refreshData();
+            await deletePayment(id);
+            await refreshData();
             onShowToast('🗑️ Data pembayaran telah dihapus.', 'info');
         }
     };

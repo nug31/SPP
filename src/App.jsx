@@ -10,9 +10,15 @@ import { getCurrentUser, setCurrentUser, getNotifications, markNotificationsRead
 
 export default function App() {
     const [user, setUser] = useState(getCurrentUser());
-    const [notifications, setNotifications] = useState(getNotifications());
+    const [notifications, setNotifications] = useState([]);
     const [toast, setToast] = useState({ message: '', type: 'info' });
     const [currentView, setCurrentView] = useState('login'); // 'login', 'admin', 'bendahara', 'wali_kelas'
+
+    useEffect(() => {
+        if (user) {
+            getNotifications().then(setNotifications);
+        }
+    }, [user]);
 
     useEffect(() => {
         if (user) {
@@ -41,10 +47,11 @@ export default function App() {
         setToast({ message, type });
     };
 
-    const handleMarkRead = () => {
+    const handleMarkRead = async () => {
         if (user) {
-            markNotificationsRead(user.role);
-            setNotifications(getNotifications());
+            await markNotificationsRead(user.role);
+            const notifs = await getNotifications();
+            setNotifications(notifs);
         }
     };
 

@@ -1,14 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getStudents, getPayments } from '../services/dataService';
 import { CheckCircle2, Clock, AlertCircle, Users } from 'lucide-react';
 
 export default function WaliKelasView({ user }) {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [allStudents, setAllStudents] = useState([]);
+    const [payments, setPayments] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [st, pa] = await Promise.all([getStudents(), getPayments()]);
+                setAllStudents(st);
+                setPayments(pa);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     const userKelas = user.kelas || 'X TKR 2';
-    const students = getStudents().filter(s => s.kelas === userKelas);
-    const payments = getPayments();
+    const students = allStudents.filter(s => s.kelas === userKelas);
 
     const bulanNama = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
