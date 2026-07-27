@@ -34,7 +34,6 @@ export const saveStudent = async (newStudent) => {
             payload.nis = nisnVal;
         }
 
-        // Check if student exists by NISN or Name
         let query = supabase.from('students').select('id');
         if (nisnVal) {
             query = query.or(`nisn.eq.${nisnVal},nis.eq.${nisnVal}`);
@@ -43,26 +42,34 @@ export const saveStudent = async (newStudent) => {
         }
 
         const { data: existing } = await query.maybeSingle();
+        let resError = null;
 
         if (existing && existing.id) {
             const { error } = await supabase.from('students').update(payload).eq('id', existing.id);
-            if (error) console.error('Error updating student:', error);
+            resError = error;
         } else {
             const { error } = await supabase.from('students').insert([payload]);
-            if (error) console.error('Error inserting student:', error);
+            resError = error;
+        }
+
+        if (resError) {
+            console.error('Supabase error saving student:', resError);
+            throw resError;
         }
 
         return await getStudents();
     } catch (err) {
         console.error('Error saving student:', err);
-        return [];
+        throw err;
     }
 };
 
 export const importStudents = async (studentsList) => {
     try {
-        if (!studentsList || studentsList.length === 0) return 0;
+        if (!studentsList || studentsList.length === 0) return { count: 0, error: null };
         let count = 0;
+        let lastError = null;
+
         for (const s of studentsList) {
             const nameVal = String(s.name || '').trim();
             const nisnVal = String(s.nisn || s.nis || '').trim();
@@ -91,19 +98,26 @@ export const importStudents = async (studentsList) => {
                 if (ex) existingId = ex.id;
             }
 
+            let opError = null;
             if (existingId) {
                 const { error } = await supabase.from('students').update(payload).eq('id', existingId);
-                if (error) console.error('Update error on import:', error);
+                opError = error;
             } else {
                 const { error } = await supabase.from('students').insert([payload]);
-                if (error) console.error('Insert error on import:', error);
+                opError = error;
             }
-            count++;
+
+            if (opError) {
+                console.error('Insert/Update error on import:', opError);
+                lastError = opError;
+            } else {
+                count++;
+            }
         }
-        return count;
+        return { count, error: lastError };
     } catch (err) {
         console.error('Error importing students list:', err);
-        return 0;
+        return { count: 0, error: err };
     }
 };
 
@@ -201,7 +215,6 @@ export const updatePaymentStatus = async (paymentId, status, reason = '') => {
         const { error } = await supabase.from('payments').update(updateData).eq('id', paymentId);
         if (error) throw error;
 
-        // Fetch payment to get student details for notification
         const { data: payment } = await supabase.from('payments').select('*, students(name)').eq('id', paymentId).single();
         if (payment) {
             await addNotification({

@@ -138,12 +138,17 @@ export default function AdminView({ user, onShowToast }) {
                 }
 
                 const processExcel = async () => {
-                    const count = await importStudents(parsedStudents);
+                    const result = await importStudents(parsedStudents);
                     await refreshData();
                     setImporting(false);
                     setSelectedExcelFile(null);
                     setShowImportModal(false);
-                    onShowToast(`✅ Berhasil mengimpor ${count} data siswa dari Excel ke Supabase!`, 'success');
+
+                    if (result.error) {
+                        onShowToast(`⚠️ Gagal simpan ke Supabase (Status 401/RLS). Silakan jalankan SQL pengaktifan akses di Supabase SQL Editor.`, 'danger');
+                    } else {
+                        onShowToast(`✅ Berhasil mengimpor ${result.count} data siswa dari Excel ke Supabase!`, 'success');
+                    }
                 };
                 processExcel();
             } catch (err) {
