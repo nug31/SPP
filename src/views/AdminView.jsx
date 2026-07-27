@@ -275,6 +275,23 @@ export default function AdminView({ user, onShowToast }) {
         })
         .sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
 
+    // Stats Calculation (Dynamic for selected month or overall)
+    const bulanNamaList = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    
+    const relevantPayments = filterBulan 
+        ? payments.filter(p => p.month === parseInt(filterBulan))
+        : payments;
+
+    const lunasCount = relevantPayments.filter(p => p.status === 'lunas').length;
+    const pendingCount = relevantPayments.filter(p => p.status === 'pending').length;
+    const belumCount = Math.max(0, students.length - lunasCount);
+    const totalTerkumpul = lunasCount * 700000;
+
+    const labelLunas = filterBulan ? `Lunas Bulan ${bulanNamaList[filterBulan]}` : 'Total Transaksi Lunas';
+    const labelPending = filterBulan ? `Menunggu (Bulan ${bulanNamaList[filterBulan]})` : 'Menunggu Verifikasi';
+    const labelBelum = filterBulan ? `Belum Bayar (Bulan ${bulanNamaList[filterBulan]})` : 'Belum Lunas';
+    const labelTerkumpul = filterBulan ? `Terkumpul Bulan ${bulanNamaList[filterBulan]}` : 'Total Terkumpul';
+
     const handleConfirm = async (id) => {
         await updatePaymentStatus(id, 'lunas');
         await refreshData();
