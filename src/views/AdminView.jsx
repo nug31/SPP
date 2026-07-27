@@ -12,6 +12,7 @@ export default function AdminView({ user, onShowToast }) {
     const [filterKelas, setFilterKelas] = useState('');
     const [filterBulan, setFilterBulan] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
+    const [showAddForm, setShowAddForm] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [selectedExcelFile, setSelectedExcelFile] = useState(null);
     const [importing, setImporting] = useState(false);
