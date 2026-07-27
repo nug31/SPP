@@ -341,7 +341,24 @@ export default function AdminView({ user, onShowToast }) {
     const handleSendWa = (student) => {
         const num = student.parent_wa.replace(/[^0-9]/g, '');
         const formattedNum = num.startsWith('0') ? '62' + num.slice(1) : num;
-        const text = encodeURIComponent(`Halo Bapak/Ibu Wali Murid dari *${student.name}*.\n\nIni pengingat pembayaran SPP bulan ini sebesar *Rp 700.000* yang belum diterima.\nMohon segera melalukan pembayaran melalui portal SatuSPP.\n\nTerima kasih 🙏`);
+        const bulanNama = bulanNamaList[filterBulan ? parseInt(filterBulan) : currentMonth];
+        const text = encodeURIComponent(
+`Assalamu'alaikum Wr. Wb.
+
+Kepada Yth,
+Bapak/Ibu Wali Murid dari *${student.name}*
+${student.kelas ? `Kelas: *${student.kelas}*` : ''}
+
+Dengan hormat,
+Kami dari pihak sekolah ingin menyampaikan bahwa hingga saat ini, pembayaran SPP Bulan *${bulanNama}* atas nama siswa tersebut di atas senilai *Rp 700.000* belum kami terima.
+
+Mohon kiranya Bapak/Ibu berkenan untuk segera melakukan pembayaran melalui portal *SatuSPP* atau menghubungi pihak sekolah jika ada kendala.
+
+Atas perhatian dan kerjasamanya, kami ucapkan terima kasih yang sebesar-besarnya. 🙏
+
+Wassalamu'alaikum Wr. Wb.
+_Administrasi Sekolah_`
+        );
         window.open(`https://wa.me/${formattedNum}?text=${text}`, '_blank');
     };
 
