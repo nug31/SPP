@@ -13,22 +13,97 @@ export const getStudents = async () => {
 
 export const saveStudent = async (newStudent) => {
     try {
-        const idVal = String(newStudent.nisn || newStudent.nis || '').trim();
-        const { data, error } = await supabase
-            .from('students')
-            .upsert({
-                nisn: idVal,
-                nis: idVal,
-                name: String(newStudent.name || '').trim(),
-                parent_wa: String(newStudent.parent_wa || '').trim(),
-                kelas: String(newStudent.kelas || 'X TKR 2').trim()
-            }, { onConflict: 'nisn' })
-            .select();
-        if (error) throw error;
+        const nisnVal = String(newStudent.nisn || newStudent.nis || '').trim();
+        const nameVal = String(newStudent.name || '').trim();
+        const waVal = String(newStudent.parent_wa || '').trim();
+        const kelasVal = String(newStudent.kelas || 'X TKR 2').trim();
+
+        if (!nameVal && !nisnVal) {
+            console.error('Save student skipped: Name or NISN is required');
+            return await getStudents();
+        }
+
+        const payload = {
+            name: nameVal || `Siswa ${nisnVal}`,
+            parent_wa: waVal,
+            kelas: kelasVal
+        };
+
+        if (nisnVal) {
+            payload.nisn = nisnVal;
+            payload.nis = nisnVal;
+        }
+
+        // Check if student exists by NISN or Name
+        let query = supabase.from('students').select('id');
+        if (nisnVal) {
+            query = query.or(`nisn.eq.${nisnVal},nis.eq.${nisnVal}`);
+        } else {
+            query = query.eq('name', nameVal);
+        }
+
+        const { data: existing } = await query.maybeSingle();
+
+        if (existing && existing.id) {
+            const { error } = await supabase.from('students').update(payload).eq('id', existing.id);
+            if (error) console.error('Error updating student:', error);
+        } else {
+            const { error } = await supabase.from('students').insert([payload]);
+            if (error) console.error('Error inserting student:', error);
+        }
+
         return await getStudents();
     } catch (err) {
         console.error('Error saving student:', err);
         return [];
+    }
+};
+
+export const importStudents = async (studentsList) => {
+    try {
+        if (!studentsList || studentsList.length === 0) return 0;
+        let count = 0;
+        for (const s of studentsList) {
+            const nameVal = String(s.name || '').trim();
+            const nisnVal = String(s.nisn || s.nis || '').trim();
+            const waVal = String(s.parent_wa || '').trim();
+            const kelasVal = String(s.kelas || 'X TKR 2').trim();
+
+            if (!nameVal && !nisnVal) continue;
+
+            const payload = {
+                name: nameVal || `Siswa ${nisnVal}`,
+                parent_wa: waVal,
+                kelas: kelasVal
+            };
+
+            if (nisnVal) {
+                payload.nisn = nisnVal;
+                payload.nis = nisnVal;
+            }
+
+            let existingId = null;
+            if (nisnVal) {
+                const { data: ex } = await supabase.from('students').select('id').or(`nisn.eq.${nisnVal},nis.eq.${nisnVal}`).maybeSingle();
+                if (ex) existingId = ex.id;
+            } else if (nameVal) {
+                const { data: ex } = await supabase.from('students').select('id').eq('name', nameVal).maybeSingle();
+                if (ex) existingId = ex.id;
+            }
+
+            if (existingId) {
+                const { error } = await supabase.from('students').update(payload).eq('id', existingId);
+                if (error) console.error('Update error on import:', error);
+            } else {
+                const { error } = await supabase.from('students').insert([payload]);
+                if (error) console.error('Insert error on import:', error);
+            }
+            count++;
+        }
+        return count;
+    } catch (err) {
+        console.error('Error importing students list:', err);
+        return 0;
     }
 };
 
@@ -180,7 +255,6 @@ export const markNotificationsRead = async (role) => {
 };
 
 export const getCurrentUser = () => {
-    // User session remains in localStorage for simplicity on frontend
     const data = localStorage.getItem('satuspp_user');
     return data ? JSON.parse(data) : null;
 };

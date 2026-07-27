@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents, addPayment, deletePayment } from '../services/dataService';
+import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents, addPayment, deletePayment, importStudents } from '../services/dataService';
 import { generatePaymentPdf } from '../utils/pdfGenerator';
 import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageCircle, Trash2, FileText, Upload, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -109,31 +109,47 @@ export default function AdminView({ user, onShowToast }) {
                 const ws = wb.Sheets[wsname];
                 const data = XLSX.utils.sheet_to_json(ws);
 
-                const processExcel = async () => {
-                    let count = 0;
-                    for (const row of data) {
-                        const nisnVal = String(row.nisn || row.NISN || row.nis || row.NIS || '').trim();
-                        const nameVal = String(row.name || row.NAMA || row.Nama || '').trim();
-                        const waVal = String(row.parent_wa || row.WA || row.NO_WA || row.No_WA || row.Phone || '').trim();
-                        const kelasVal = String(row.kelas || row.KELAS || row.Kelas || 'X TKR 2').trim();
+                if (!data || data.length === 0) {
+                    setImporting(false);
+                    onShowToast('⚠️ File Excel kosong atau tidak terbaca.', 'warning');
+                    return;
+                }
 
-                        if (nameVal || nisnVal) {
-                            await saveStudent({ nisn: nisnVal, name: nameVal, parent_wa: waVal, kelas: kelasVal });
-                            count++;
-                        }
-                    }
-                    await deduplicateStudents();
+                // Parse student data with flexible header matching
+                const parsedStudents = data.map(row => {
+                    const keys = Object.keys(row);
+                    const nameKey = keys.find(k => /nama|name/i.test(k));
+                    const nisnKey = keys.find(k => /nisn|nis/i.test(k));
+                    const waKey = keys.find(k => /wa|phone|hp|telepon|parent_wa/i.test(k));
+                    const kelasKey = keys.find(k => /kelas|class/i.test(k));
+
+                    return {
+                        name: nameKey ? String(row[nameKey] || '').trim() : '',
+                        nisn: nisnKey ? String(row[nisnKey] || '').trim() : '',
+                        parent_wa: waKey ? String(row[waKey] || '').trim() : '',
+                        kelas: kelasKey ? String(row[kelasKey] || '').trim() : 'X TKR 2'
+                    };
+                }).filter(item => item.name || item.nisn);
+
+                if (parsedStudents.length === 0) {
+                    setImporting(false);
+                    onShowToast('⚠️ Tidak ada kolom Nama atau NISN yang ditemukan pada Excel.', 'warning');
+                    return;
+                }
+
+                const processExcel = async () => {
+                    const count = await importStudents(parsedStudents);
                     await refreshData();
                     setImporting(false);
                     setSelectedExcelFile(null);
                     setShowImportModal(false);
-                    onShowToast(`✅ Berhasil mengimpor ${count} data siswa dari Excel!`, 'success');
+                    onShowToast(`✅ Berhasil mengimpor ${count} data siswa dari Excel ke Supabase!`, 'success');
                 };
                 processExcel();
             } catch (err) {
                 console.error(err);
                 setImporting(false);
-                onShowToast('❌ Gagal membaca file Excel. Pastikan format kolom benar.', 'danger');
+                onShowToast('❌ Gagal membaca file Excel. Pastikan format file (.xlsx) benar.', 'danger');
             }
         };
         reader.readAsBinaryString(selectedExcelFile);
