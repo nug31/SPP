@@ -259,6 +259,7 @@ export default function AdminView({ user, onShowToast }) {
     });
 
     // Calculate Unpaid Students (exclude students who have paid)
+    const targetMonth = filterBulan ? parseInt(filterBulan) : currentMonth;
     const paidStudentIds = new Set(
         filterBulan
             ? payments
