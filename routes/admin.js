@@ -240,7 +240,7 @@ router.post('/wa-remind/:student_id', async (req, res) => {
         ? student.name.toLowerCase().replace(/(?:^|\s|-)\S/g, (a) => a.toUpperCase())
         : '';
 
-    const msg = `Assalamu'alaikum warahmatullahi wabarakatuh.\nYth. Bapak/Ibu ${formattedName}\n\nDengan hormat.\n\nPerkenankan saya selaku Wali Kelas ${kelas} mengingatkan untuk pembayaran SPP Bulan ${bulanNama}.\n\nApabila pembayaran belum sempat dilakukan, mohon kesediaan Bapak/Ibu untuk dapat menyelesaikannya pada kesempatan pertama. Apabila pembayaran sudah dilakukan, mohon berkenan mengirimkan bukti transfer kepada saya agar dapat saya teruskan kepada bagian administrasi.\n\nAtas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. 🙏😊`;
+    const msg = `Assalamu'alaikum warahmatullahi wabarakatuh.\nYth. Bapak/Ibu ${formattedName}\n\nDengan hormat.\n\nPerkenankan saya selaku Wali Kelas ${kelas} mengingatkan untuk pembayaran SPP Bulan ${bulanNama}.\n\nApabila pembayaran belum sempat dilakukan, mohon kesediaan Bapak/Ibu untuk dapat menyelesaikannya pada kesempatan pertama. Apabila pembayaran sudah dilakukan, mohon berkenan mengirimkan bukti transfer kepada saya agar dapat saya teruskan kepada bagian administrasi.\n\nAtas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F64F}\u{1F60A}`;
 
     await waBot.sendMessage(student.parent_wa, msg);
     res.redirect('/admin?success=wa_sent');

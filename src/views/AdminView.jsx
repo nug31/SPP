@@ -360,7 +360,7 @@ Perkenankan saya selaku Wali Kelas ${kelas} mengingatkan untuk pembayaran SPP Bu
 
 Apabila pembayaran belum sempat dilakukan, mohon kesediaan Bapak/Ibu untuk dapat menyelesaikannya pada kesempatan pertama. Apabila pembayaran sudah dilakukan, mohon berkenan mengirimkan bukti transfer kepada saya agar dapat saya teruskan kepada bagian administrasi. 
 
-Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. 🙏😊`
+Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F64F}\u{1F60A}`
         );
         window.open(`https://wa.me/${formattedNum}?text=${text}`, '_blank');
     };
