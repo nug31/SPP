@@ -232,9 +232,15 @@ router.post('/wa-remind/:student_id', async (req, res) => {
     const { data: student } = await supabase.from('students').select('*').eq('id', student_id).single();
     if (!student) return res.redirect('/admin?error=studentnotfound');
 
+    const bulanNamaList = ['Desember', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
-    const msg = `Halo Bapak/Ibu Wali Murid dari *${student.name}*.\n\nIni adalah pengingat bahwa pembayaran SPP bulan ini sebesar *Rp 700.000* belum kami terima.\n\nMohon segera melakukan pembayaran sebelum tanggal 8 dan unggah bukti melalui portal SPP sekolah.\n\nTerima kasih 🙏`;
+    const bulanNama = bulanNamaList[currentMonth] || 'bulan ini';
+    const kelas = student.kelas || 'X TKR 2';
+    const formattedName = student.name
+        ? student.name.toLowerCase().replace(/(?:^|\s|-)\S/g, (a) => a.toUpperCase())
+        : '';
+
+    const msg = `Assalamu'alaikum warahmatullahi wabarakatuh.\n\nYth. Bapak/Ibu Wali Murid dari ${formattedName}\nKelas: ${kelas}\n\nDengan hormat.\n\nPerkenankan saya selaku Wali Kelas ${kelas} mengingatkan bahwa hingga saat ini pembayaran SPP Bulan ${bulanNama} sebesar Rp700.000 belum tercatat dalam administrasi sekolah.\n\nApabila pembayaran belum sempat dilakukan, mohon kesediaan Bapak/Ibu untuk dapat menyelesaikannya pada kesempatan pertama. Apabila pembayaran sudah dilakukan, mohon berkenan mengirimkan bukti transfer kepada saya agar dapat saya teruskan kepada bagian administrasi.\n\nAtas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. 🙏😊`;
 
     await waBot.sendMessage(student.parent_wa, msg);
     res.redirect('/admin?success=wa_sent');

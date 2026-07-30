@@ -340,20 +340,29 @@ export default function AdminView({ user, onShowToast }) {
     };
 
     const handleSendWa = (student) => {
-        const num = student.parent_wa.replace(/[^0-9]/g, '');
+        const num = student.parent_wa ? student.parent_wa.replace(/[^0-9]/g, '') : '';
         const formattedNum = num.startsWith('0') ? '62' + num.slice(1) : num;
         const bulanNama = bulanNamaList[filterBulan ? parseInt(filterBulan) : currentMonth];
-        const waliKelas = user?.name || user?.username || 'Wali Kelas';
-        const kelas = student.kelas || '';
+        const kelas = student.kelas || 'X TKR 2';
+
+        // Format nama menjadi Title Case (bukan Kapital Semua)
+        const formattedName = student.name
+            ? student.name.toLowerCase().replace(/(?:^|\s|-)\S/g, (a) => a.toUpperCase())
+            : '';
+
         const text = encodeURIComponent(
-`Assalamu'alaikum Wr. Wb.
-Bapak/Ibu Wali Murid dari *${student.name}*
-Kelas: *${kelas}*
-Dengan hormat,
-Saya selaku Wali Kelas ingin menyampaikan bahwa hingga saat ini, pembayaran SPP Bulan *${bulanNama}* senilai *Rp 700.000* belum kami terima.
-Mohon kiranya Bapak/Ibu berkenan untuk segera melakukan pembayaran.
-Atas perhatian dan kerjasamanya, saya ucapkan terima kasih yang sebesar-besarnya. 🙏
-Wassalamu'alaikum Wr. Wb.`
+`Assalamu'alaikum warahmatullahi wabarakatuh.
+
+Yth. Bapak/Ibu Wali Murid dari ${formattedName}
+Kelas: ${kelas}
+
+Dengan hormat.
+
+Perkenankan saya selaku Wali Kelas ${kelas} mengingatkan bahwa hingga saat ini pembayaran SPP Bulan ${bulanNama} sebesar Rp700.000 belum tercatat dalam administrasi sekolah.
+
+Apabila pembayaran belum sempat dilakukan, mohon kesediaan Bapak/Ibu untuk dapat menyelesaikannya pada kesempatan pertama. Apabila pembayaran sudah dilakukan, mohon berkenan mengirimkan bukti transfer kepada saya agar dapat saya teruskan kepada bagian administrasi. 
+
+Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. 🙏😊`
         );
         window.open(`https://wa.me/${formattedNum}?text=${text}`, '_blank');
     };
