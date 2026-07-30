@@ -352,13 +352,11 @@ export default function AdminView({ user, onShowToast }) {
 
         const text = encodeURIComponent(
 `Assalamu'alaikum warahmatullahi wabarakatuh.
-
-Yth. Bapak/Ibu Wali Murid dari ${formattedName}
-Kelas: ${kelas}
+Yth. Bapak/Ibu ${formattedName}
 
 Dengan hormat.
 
-Perkenankan saya selaku Wali Kelas ${kelas} mengingatkan bahwa hingga saat ini pembayaran SPP Bulan ${bulanNama} sebesar Rp700.000 belum tercatat dalam administrasi sekolah.
+Perkenankan saya selaku Wali Kelas ${kelas} mengingatkan untuk pembayaran SPP Bulan ${bulanNama}.
 
 Apabila pembayaran belum sempat dilakukan, mohon kesediaan Bapak/Ibu untuk dapat menyelesaikannya pada kesempatan pertama. Apabila pembayaran sudah dilakukan, mohon berkenan mengirimkan bukti transfer kepada saya agar dapat saya teruskan kepada bagian administrasi. 
 
