@@ -258,7 +258,7 @@ export default function AdminView({ user, onShowToast }) {
         return matchSearch && matchKelas && matchBulan && matchStatus;
     });
 
-    // Calculate Unpaid Students (exclude students who have paid)
+    // Calculate Unpaid Students (exclude students who have paid or pending)
     const targetMonth = filterBulan ? parseInt(filterBulan) : currentMonth;
     const paidStudentIds = new Set(
         filterBulan
@@ -288,7 +288,8 @@ export default function AdminView({ user, onShowToast }) {
 
     const lunasCount = relevantPayments.filter(p => p.status === 'lunas').length;
     const pendingCount = relevantPayments.filter(p => p.status === 'pending').length;
-    const belumCount = Math.max(0, students.length - lunasCount);
+    // belumCount menggunakan unpaidStudents agar sinkron dengan tabel (sudah memperhitungkan filter kelas, search, dan status pending)
+    const belumCount = unpaidStudents.length;
     const totalTerkumpul = lunasCount * 700000;
 
     const labelLunas = filterBulan ? `Lunas Bulan ${bulanNamaList[filterBulan]}` : 'Total Transaksi Lunas';
