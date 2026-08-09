@@ -298,21 +298,30 @@ export default function AdminView({ user, onShowToast }) {
     const labelTerkumpul = filterBulan ? `Terkumpul Bulan ${bulanNamaList[filterBulan]}` : 'Total Terkumpul';
 
     const handleExportExcel = () => {
-        const dataToExport = filteredPayments
-            .filter(p => p.status === 'lunas')
-            .map((p, index) => {
-                const student = students.find(s => s.id === p.student_id);
-                return {
-                    'No': index + 1,
-                    'Nama Siswa': student?.name || 'Siswa',
-                    'NISN': student?.nisn || student?.nis || '-',
-                    'Kelas': student?.kelas || 'X TKR 2',
-                    'Periode': `${p.month}/${p.year}`,
-                    'Tanggal Bayar': new Date(p.updated_at || p.created_at).toLocaleDateString('id-ID'),
-                    'Nominal': 700000,
-                    'Keterangan': p.proof_file === 'BEASISWA PEMERINTAH' ? 'Beasiswa dari Pemerintah' : 'Lunas'
-                };
-            });
+        let lunasPayments = filteredPayments.filter(p => p.status === 'lunas');
+
+        // Urutkan berdasarkan nama siswa (A-Z)
+        lunasPayments.sort((a, b) => {
+            const studentA = students.find(s => s.id === a.student_id);
+            const studentB = students.find(s => s.id === b.student_id);
+            const nameA = studentA?.name || '';
+            const nameB = studentB?.name || '';
+            return nameA.localeCompare(nameB, 'id', { sensitivity: 'base' });
+        });
+
+        const dataToExport = lunasPayments.map((p, index) => {
+            const student = students.find(s => s.id === p.student_id);
+            return {
+                'No': index + 1,
+                'Nama Siswa': student?.name || 'Siswa',
+                'NISN': student?.nisn || student?.nis || '-',
+                'Kelas': student?.kelas || 'X TKR 2',
+                'Periode': `${p.month}/${p.year}`,
+                'Tanggal Bayar': new Date(p.created_at).toLocaleDateString('id-ID'), // Sesuaikan dengan tanggal upload bukti transfer
+                'Nominal': 700000,
+                'Keterangan': p.proof_file === 'BEASISWA PEMERINTAH' ? 'Beasiswa dari Pemerintah' : 'Lunas'
+            };
+        });
 
         if (dataToExport.length === 0) {
             onShowToast('⚠️ Tidak ada data pembayaran lunas untuk diexport.', 'warning');
