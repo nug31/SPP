@@ -297,6 +297,36 @@ export default function AdminView({ user, onShowToast }) {
     const labelBelum = filterBulan ? `Belum Bayar (Bulan ${bulanNamaList[filterBulan]})` : 'Belum Lunas';
     const labelTerkumpul = filterBulan ? `Terkumpul Bulan ${bulanNamaList[filterBulan]}` : 'Total Terkumpul';
 
+    const handleExportExcel = () => {
+        const dataToExport = filteredPayments
+            .filter(p => p.status === 'lunas')
+            .map((p, index) => {
+                const student = students.find(s => s.id === p.student_id);
+                return {
+                    'No': index + 1,
+                    'Nama Siswa': student?.name || 'Siswa',
+                    'NISN': student?.nisn || student?.nis || '-',
+                    'Kelas': student?.kelas || 'X TKR 2',
+                    'Periode': `${p.month}/${p.year}`,
+                    'Tanggal Bayar': new Date(p.updated_at || p.created_at).toLocaleDateString('id-ID'),
+                    'Nominal': 700000,
+                    'Keterangan': p.proof_file === 'BEASISWA PEMERINTAH' ? 'Beasiswa dari Pemerintah' : 'Lunas'
+                };
+            });
+
+        if (dataToExport.length === 0) {
+            onShowToast('⚠️ Tidak ada data pembayaran lunas untuk diexport.', 'warning');
+            return;
+        }
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Rekap Pembayaran');
+        const filename = filterBulan ? `Rekap_Pembayaran_Bulan_${bulanNamaList[filterBulan]}.xlsx` : 'Rekap_Pembayaran_Keseluruhan.xlsx';
+        XLSX.writeFile(wb, filename);
+        onShowToast('✅ Rekapan Excel berhasil diunduh.', 'success');
+    };
+
     const handleConfirm = async (id) => {
         await updatePaymentStatus(id, 'lunas');
         await refreshData();
@@ -460,11 +490,16 @@ Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F6
                 <section id="payments" className="card glass" style={{ padding: '24px', marginBottom: '28px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h2>✅ Status Pembayaran Siswa ({filteredPayments.length})</h2>
-                        {user.role === 'admin' && payments.length > 0 && (
-                            <button className="btn btn-danger btn-sm" onClick={handleClearPayments} title="Hapus semua data pembayaran dummy">
-                                <Trash2 size={14} /> Hapus Data Pembayaran Dummy
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="btn btn-success btn-sm" onClick={handleExportExcel} title="Export Rekap Excel">
+                                <FileSpreadsheet size={14} /> Export Rekap Excel
                             </button>
-                        )}
+                            {user.role === 'admin' && payments.length > 0 && (
+                                <button className="btn btn-danger btn-sm" onClick={handleClearPayments} title="Hapus semua data pembayaran dummy">
+                                    <Trash2 size={14} /> Hapus Data Pembayaran Dummy
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="table-responsive">
