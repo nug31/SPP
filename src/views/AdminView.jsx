@@ -300,8 +300,25 @@ export default function AdminView({ user, onShowToast }) {
     const handleExportExcel = () => {
         let lunasPayments = filteredPayments.filter(p => p.status === 'lunas');
 
+        // Pisahkan pembayaran biasa dan beasiswa
+        const regularPayments = lunasPayments.filter(p => p.proof_file !== 'BEASISWA PEMERINTAH');
+        const beasiswaPayments = lunasPayments.filter(p => p.proof_file === 'BEASISWA PEMERINTAH');
+
+        // Untuk beasiswa: group per student_id, ambil hanya satu baris saja
+        const beasiswaGrouped = [];
+        const seenBeasiswaIds = new Set();
+        for (const p of beasiswaPayments) {
+            if (!seenBeasiswaIds.has(p.student_id)) {
+                seenBeasiswaIds.add(p.student_id);
+                beasiswaGrouped.push(p);
+            }
+        }
+
+        // Gabungkan: pembayaran biasa + beasiswa (sudah digroup)
+        const combined = [...regularPayments, ...beasiswaGrouped];
+
         // Urutkan berdasarkan nama siswa (A-Z)
-        lunasPayments.sort((a, b) => {
+        combined.sort((a, b) => {
             const studentA = students.find(s => s.id === a.student_id);
             const studentB = students.find(s => s.id === b.student_id);
             const nameA = studentA?.name || '';
@@ -309,17 +326,18 @@ export default function AdminView({ user, onShowToast }) {
             return nameA.localeCompare(nameB, 'id', { sensitivity: 'base' });
         });
 
-        const dataToExport = lunasPayments.map((p, index) => {
+        const dataToExport = combined.map((p, index) => {
             const student = students.find(s => s.id === p.student_id);
+            const isBeasiswa = p.proof_file === 'BEASISWA PEMERINTAH';
             return {
                 'No': index + 1,
                 'Nama Siswa': student?.name || 'Siswa',
                 'NISN': student?.nisn || student?.nis || '-',
                 'Kelas': student?.kelas || 'X TKR 2',
-                'Periode': `${p.month}/${p.year}`,
-                'Tanggal Bayar': new Date(p.created_at).toLocaleDateString('id-ID'), // Sesuaikan dengan tanggal upload bukti transfer
-                'Nominal': 700000,
-                'Keterangan': p.proof_file === 'BEASISWA PEMERINTAH' ? 'Beasiswa dari Pemerintah' : 'Lunas'
+                'Periode': isBeasiswa ? `Jan–Des ${p.year}` : `${p.month}/${p.year}`,
+                'Tanggal Bayar': isBeasiswa ? '-' : new Date(p.created_at).toLocaleDateString('id-ID'),
+                'Nominal': isBeasiswa ? '-' : 700000,
+                'Keterangan': isBeasiswa ? 'Beasiswa dari Pemerintah' : 'Lunas'
             };
         });
 
