@@ -25,7 +25,8 @@ export default function AdminView({ user, onShowToast }) {
     // Preview Proof Modal state
     const [previewModal, setPreviewModal] = useState({ open: false, url: '', type: 'image/png', studentName: '' });
     // Upload Modal state & OCR auto-detection state
-    const [uploadModal, setUploadModal] = useState({ open: false, student: null, file: null, month: new Date().getMonth() + 1, year: new Date().getFullYear() });
+    const [uploadModal, setUploadModal] = useState({ open: false, student: null, file: null, year: new Date().getFullYear() });
+    const [selectedMonths, setSelectedMonths] = useState([new Date().getMonth() + 1]);
     const [ocrScanning, setOcrScanning] = useState(false);
     const [ocrMatchStatus, setOcrMatchStatus] = useState(null);
 
@@ -409,7 +410,7 @@ export default function AdminView({ user, onShowToast }) {
             : '';
 
         const text = encodeURIComponent(
-`Assalamu'alaikum warahmatullahi wabarakatuh.
+            `Assalamu'alaikum warahmatullahi wabarakatuh.
 Yth. Bapak/Ibu ${formattedName}
 
 Dengan hormat.
@@ -503,7 +504,7 @@ Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F6
 
                     {user.role === 'admin' && (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="btn btn-primary" onClick={() => { setUploadModal({ open: true, student: null, file: null, month: targetMonth, year: currentYear }); setOcrMatchStatus(null); }}>
+                            <button className="btn btn-primary" onClick={() => { setUploadModal({ open: true, student: null, file: null, year: currentYear }); setSelectedMonths([targetMonth]); setOcrMatchStatus(null); }}>
                                 <Sparkles size={16} /> Upload Bukti TF (Auto AI Detect)
                             </button>
                             <button className="btn btn-ghost" onClick={() => setShowMasterModal(true)}>
@@ -825,10 +826,10 @@ Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F6
             {/* Modal Upload Bukti Pembayaran */}
             {uploadModal.open && (
                 <div className="modal-overlay">
-                    <div className="modal-card glass" style={{ maxWidth: '440px' }}>
+                    <div className="modal-card glass" style={{ maxWidth: '500px' }}>
                         <h3>📤 Upload Bukti Pembayaran</h3>
                         <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '16px' }}>
-                            Upload foto resi/bukti transfer m-banking. Sistem akan otomatis mendeteksi nama siswa!
+                            Upload foto resi/bukti transfer m-banking. Bisa pilih lebih dari 1 bulan sekaligus!
                         </p>
 
                         <form onSubmit={(e) => {
@@ -837,19 +838,28 @@ Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F6
                                 onShowToast('⚠️ Silakan pilih file dan siswa terlebih dahulu.', 'warning');
                                 return;
                             }
+                            if (selectedMonths.length === 0) {
+                                onShowToast('⚠️ Pilih minimal 1 bulan pembayaran.', 'warning');
+                                return;
+                            }
                             const reader = new FileReader();
                             reader.onloadend = async () => {
-                                await addPayment({
-                                    student_id: uploadModal.student.id,
-                                    month: uploadModal.month,
-                                    year: uploadModal.year,
-                                    proof_file: reader.result,
-                                    status: 'lunas'
-                                });
-                                setUploadModal({ open: false, student: null, file: null, month: currentMonth, year: currentYear });
+                                // Insert payment untuk setiap bulan yang dipilih
+                                const insertPromises = selectedMonths.map(m =>
+                                    addPayment({
+                                        student_id: uploadModal.student.id,
+                                        month: m,
+                                        year: uploadModal.year,
+                                        proof_file: reader.result,
+                                        status: 'lunas'
+                                    })
+                                );
+                                await Promise.all(insertPromises);
+                                setUploadModal({ open: false, student: null, file: null, year: currentYear });
+                                setSelectedMonths([currentMonth]);
                                 setOcrMatchStatus(null);
                                 await refreshData();
-                                onShowToast('✅ Bukti pembayaran berhasil diunggah & status lunas.', 'success');
+                                onShowToast(`✅ Pembayaran ${selectedMonths.length} bulan berhasil disimpan & lunas!`, 'success');
                             };
                             reader.readAsDataURL(uploadModal.file);
                         }}>
@@ -899,19 +909,69 @@ Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F6
                                 </select>
                             </div>
 
+                            {/* Multi-bulan Checkbox Grid */}
                             <div className="form-group" style={{ marginBottom: '16px' }}>
-                                <label>Bulan Pembayaran</label>
-                                <select className="form-select" value={uploadModal.month} onChange={e => setUploadModal({ ...uploadModal, month: parseInt(e.target.value) })}>
-                                    {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((b, i) => (
-                                        <option key={i} value={i + 1}>{b}</option>
-                                    ))}
-                                </select>
+                                <label style={{ marginBottom: '8px', display: 'block' }}>
+                                    Bulan Pembayaran
+                                    <span style={{ marginLeft: '8px', fontSize: '11px', color: selectedMonths.length > 1 ? '#34d399' : '#94a3b8', fontWeight: 600 }}>
+                                        {selectedMonths.length === 0 ? '(belum dipilih)' : selectedMonths.length === 1 ? `(${selectedMonths.length} bulan)` : `(${selectedMonths.length} bulan sekaligus 🎉)`}
+                                    </span>
+                                </label>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(4, 1fr)',
+                                    gap: '6px',
+                                    background: 'rgba(255,255,255,0.03)',
+                                    border: '1px solid var(--glass-border)',
+                                    borderRadius: '10px',
+                                    padding: '10px'
+                                }}>
+                                    {['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'].map((b, i) => {
+                                        const m = i + 1;
+                                        const checked = selectedMonths.includes(m);
+                                        return (
+                                            <label key={m} style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                padding: '5px 8px',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                background: checked ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
+                                                border: checked ? '1px solid #6366f1' : '1px solid transparent',
+                                                fontSize: '12px',
+                                                color: checked ? '#a5b4fc' : '#94a3b8',
+                                                fontWeight: checked ? 600 : 400,
+                                                transition: 'all 0.15s'
+                                            }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() => {
+                                                        setSelectedMonths(prev =>
+                                                            prev.includes(m)
+                                                                ? prev.filter(x => x !== m)
+                                                                : [...prev, m].sort((a, b) => a - b)
+                                                        );
+                                                    }}
+                                                    style={{ accentColor: '#6366f1', width: '13px', height: '13px' }}
+                                                />
+                                                {b}
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                                {selectedMonths.length > 1 && (
+                                    <div style={{ marginTop: '8px', fontSize: '11px', color: '#34d399', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', padding: '6px 10px', borderRadius: '6px' }}>
+                                        💡 Akan menyimpan <strong>{selectedMonths.length} record pembayaran lunas</strong> sekaligus untuk bulan: {selectedMonths.map(m => ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'][m-1]).join(', ')}
+                                    </div>
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                <button type="button" className="btn btn-ghost" onClick={() => { setUploadModal({ open: false, student: null, file: null, month: currentMonth, year: currentYear }); setOcrMatchStatus(null); }}>Batal</button>
-                                <button type="submit" className="btn btn-success" disabled={ocrScanning || !uploadModal.student || !uploadModal.file}>
-                                    Upload & Set Lunas
+                                <button type="button" className="btn btn-ghost" onClick={() => { setUploadModal({ open: false, student: null, file: null, year: currentYear }); setSelectedMonths([currentMonth]); setOcrMatchStatus(null); }}>Batal</button>
+                                <button type="submit" className="btn btn-success" disabled={ocrScanning || !uploadModal.student || !uploadModal.file || selectedMonths.length === 0}>
+                                    <Check size={14} /> Upload & Set {selectedMonths.length > 1 ? `${selectedMonths.length} Bulan Lunas` : 'Lunas'}
                                 </button>
                             </div>
                         </form>
