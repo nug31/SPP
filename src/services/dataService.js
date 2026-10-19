@@ -209,6 +209,19 @@ export const addPayment = async (paymentData) => {
     }
 };
 
+export const updatePaymentDate = async (paymentId, isoDate) => {
+    try {
+        const { error } = await supabase.from('payments')
+            .update({ created_at: new Date(`${isoDate}T12:00:00`).toISOString() })
+            .eq('id', paymentId);
+        if (error) throw error;
+        return true;
+    } catch (err) {
+        console.error('Error updating payment date:', err);
+        return false;
+    }
+};
+
 export const updatePaymentStatus = async (paymentId, status, reason = '') => {
     try {
         const updateData = { status, updated_at: new Date().toISOString() };

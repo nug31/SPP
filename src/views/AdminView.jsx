@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getStudents, getPayments, updatePaymentStatus, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents, addPayment, deletePayment, importStudents } from '../services/dataService';
+import { getStudents, getPayments, updatePaymentStatus, updatePaymentDate, saveStudent, deleteStudent, clearAllPayments, deduplicateStudents, addPayment, deletePayment, importStudents } from '../services/dataService';
 import { generatePaymentPdf } from '../utils/pdfGenerator';
 import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageCircle, Trash2, FileText, Upload, FileSpreadsheet, RefreshCw, Sparkles, Check } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -18,6 +18,7 @@ const extractTransferDate = (text) => {
     if (m && valid(+m[1], +m[2], +m[3])) return `${m[3]}-${pad(+m[2])}-${pad(+m[1])}`;
     return null;
 };
+const toLocalISO = (v) => { const d = new Date(v); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 export default function AdminView({ user, onShowToast }) {
@@ -88,6 +89,17 @@ export default function AdminView({ user, onShowToast }) {
         } else {
             const fullUrl = proofFile.startsWith('http') || proofFile.startsWith('/') ? proofFile : '/uploads/' + proofFile;
             setPreviewModal({ open: true, url: fullUrl, rawData: fullUrl, type: 'image/png', studentName });
+        }
+    };
+
+    const handleChangePaymentDate = async (id, isoDate) => {
+        if (!isoDate) return;
+        const ok = await updatePaymentDate(id, isoDate);
+        if (ok) {
+            await refreshData();
+            onShowToast('✅ Tanggal bayar diperbarui.', 'success');
+        } else {
+            onShowToast('❌ Gagal memperbarui tanggal.', 'danger');
         }
     };
 
@@ -558,7 +570,17 @@ Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F6
                                     const student = students.find(s => s.id === p.student_id);
                                     return (
                                         <tr key={p.id}>
-                                            <td style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
+                                            <td style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                                {user.role === 'admin' ? (
+                                                    <input
+                                                        type="date"
+                                                        title="Ubah tanggal bayar"
+                                                        value={toLocalISO(p.created_at)}
+                                                        onChange={e => handleChangePaymentDate(p.id, e.target.value)}
+                                                        style={{ fontSize: '11px', padding: '4px 6px', width: '130px' }}
+                                                    />
+                                                ) : new Date(p.created_at).toLocaleDateString('id-ID')}
+                                            </td>
                                             <td>
                                                 <strong>{student?.name || 'Siswa'}</strong>
                                                 <div style={{ fontSize: '11px', color: '#64748b' }}>{student?.nisn || student?.nis}</div>
