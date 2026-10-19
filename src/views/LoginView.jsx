@@ -14,44 +14,18 @@ export default function LoginView({ onLogin, onShowToast }) {
         setLoading(true);
 
         try {
-            // Query user dari tabel users di Supabase
-            const { data: user, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('email', email.trim().toLowerCase())
-                .single();
+            const { data, error } = await supabase.rpc('login_user', {
+                p_email: email,
+                p_password: password
+            });
 
-            if (error || !user) {
+            const userData = Array.isArray(data) ? data[0] : data;
+            if (error || !userData) {
                 onShowToast('❌ Email atau password salah.', 'danger');
                 setLoading(false);
                 return;
             }
 
-            // Cek password menggunakan bcrypt (via Supabase function atau compare langsung)
-            // Karena di browser kita tidak bisa akses bcrypt, kita pakai endpoint check sederhana
-            // Untuk sekarang, bandingkan dengan hash yang tersimpan menggunakan Web Crypto
-            // Alternatif: gunakan Supabase Auth atau server-side check
-            
-            // Solusi sementara: gunakan endpoint verifikasi dari server Express
-            const resp = await fetch('/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email.trim().toLowerCase(), password })
-            });
-            
-            if (!resp.ok) {
-                // Coba parse error dari server
-                try {
-                    const data = await resp.json();
-                    onShowToast(data.error || '❌ Email atau password salah.', 'danger');
-                } catch {
-                    onShowToast('❌ Email atau password salah.', 'danger');
-                }
-                setLoading(false);
-                return;
-            }
-
-            const userData = await resp.json();
             const sessionUser = {
                 id: userData.id,
                 name: userData.name,
