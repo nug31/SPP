@@ -5,6 +5,21 @@ import { Users, CheckCircle2, Clock, XCircle, DollarSign, Search, Plus, MessageC
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
 
+// Ekstrak tanggal transfer (yyyy-mm-dd) dari teks OCR bukti transfer
+const MONTH_MAP = { jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5, jun: 6, jul: 7, agu: 8, agt: 8, aug: 8, sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12 };
+const extractTransferDate = (text) => {
+    const pad = n => String(n).padStart(2, '0');
+    const valid = (d, m, y) => y >= 2020 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31;
+    let m = text.match(/(\d{1,2})\s+(jan|feb|mar|apr|mei|may|jun|jul|agu|agt|aug|sep|okt|oct|nov|des|dec)[a-z]*\.?,?\s+(20\d{2})/i);
+    if (m && valid(+m[1], MONTH_MAP[m[2].toLowerCase()], +m[3])) return `${m[3]}-${pad(MONTH_MAP[m[2].toLowerCase()])}-${pad(+m[1])}`;
+    m = text.match(/(20\d{2})-(\d{2})-(\d{2})/);
+    if (m && valid(+m[3], +m[2], +m[1])) return `${m[1]}-${m[2]}-${m[3]}`;
+    m = text.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})/);
+    if (m && valid(+m[1], +m[2], +m[3])) return `${m[3]}-${pad(+m[2])}-${pad(+m[1])}`;
+    return null;
+};
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
 export default function AdminView({ user, onShowToast }) {
     const [students, setStudents] = useState([]);
     const [payments, setPayments] = useState([]);
@@ -81,7 +96,7 @@ export default function AdminView({ user, onShowToast }) {
         const file = e.target.files[0];
         if (!file) return;
 
-        setUploadModal(prev => ({ ...prev, file }));
+        setUploadModal(prev => ({ ...prev, file, paidDate: todayISO() }));
         setOcrMatchStatus(null);
 
         // Run OCR if file is an image
@@ -93,6 +108,9 @@ export default function AdminView({ user, onShowToast }) {
                 await worker.terminate();
 
                 const text = (ret.data.text || '').toLowerCase();
+
+                const detectedDate = extractTransferDate(text);
+                if (detectedDate) setUploadModal(prev => ({ ...prev, paidDate: detectedDate }));
 
                 let matchedStudent = null;
                 let highestScore = 0;
@@ -851,7 +869,8 @@ Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F6
                                         month: m,
                                         year: uploadModal.year,
                                         proof_file: reader.result,
-                                        status: 'lunas'
+                                        status: 'lunas',
+                                        paid_at: uploadModal.paidDate ? `${uploadModal.paidDate}T12:00:00` : undefined
                                     })
                                 );
                                 await Promise.all(insertPromises);
@@ -881,6 +900,16 @@ Atas perhatian, kerja sama, dan pengertiannya, saya ucapkan terima kasih. \u{1F6
                                 {ocrMatchStatus?.found && (
                                     <div style={{ marginTop: '8px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Sparkles size={14} /> Terdeteksi Otomatis: <strong>{ocrMatchStatus.studentName}</strong>
+                                    </div>
+                                )}
+                                {uploadModal.file && (
+                                    <div style={{ marginTop: '12px' }}>
+                                        <label style={{ fontSize: '12px' }}>Tanggal Transfer (terdeteksi dari bukti, bisa diubah)</label>
+                                        <input
+                                            type="date"
+                                            value={uploadModal.paidDate || ''}
+                                            onChange={e => setUploadModal(prev => ({ ...prev, paidDate: e.target.value }))}
+                                        />
                                     </div>
                                 )}
                                 {ocrMatchStatus && !ocrMatchStatus.found && !ocrScanning && (

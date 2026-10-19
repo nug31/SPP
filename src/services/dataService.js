@@ -189,6 +189,8 @@ export const addPayment = async (paymentData) => {
             proof_file: paymentData.proof_file,
             status: paymentData.status || 'pending'
         };
+        // Tanggal transfer dari bukti (disimpan di created_at agar dipakai tabel & rekap Excel)
+        if (paymentData.paid_at) newPayment.created_at = new Date(paymentData.paid_at).toISOString();
         const { data, error } = await supabase.from('payments').insert([newPayment]).select();
         if (error) throw error;
         
