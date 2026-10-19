@@ -6,7 +6,7 @@ create or replace function public.login_user(p_email text, p_password text)
 returns table (id bigint, name text, email text, role text, kelas text, student_id bigint)
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
     select u.id, u.name, u.email, u.role, u.kelas, u.student_id
     from users u
