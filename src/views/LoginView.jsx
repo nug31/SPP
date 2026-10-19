@@ -6,6 +6,8 @@ export default function LoginView({ onLogin, onShowToast }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showForgot, setShowForgot] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -95,15 +97,40 @@ export default function LoginView({ onLogin, onShowToast }) {
                     </div>
                     <div className="form-group">
                         <label>Password</label>
-                        <input
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            required
-                            disabled={loading}
-                        />
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                required
+                                disabled={loading}
+                                style={{ paddingRight: '44px' }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(v => !v)}
+                                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: 0 }}
+                            >
+                                {showPassword ? '🙈' : '👁️'}
+                            </button>
+                        </div>
                     </div>
+                    <div style={{ textAlign: 'right', marginTop: '-8px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setShowForgot(v => !v)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#818cf8', fontSize: '13px', padding: 0 }}
+                        >
+                            Lupa password?
+                        </button>
+                    </div>
+                    {showForgot && (
+                        <p style={{ fontSize: '12px', color: '#94a3b8', background: 'rgba(129,140,248,0.1)', borderRadius: '8px', padding: '10px 12px', marginTop: '10px' }}>
+                            Password direset oleh pengelola sistem. Hubungi admin database untuk mengganti password akun Anda.
+                        </p>
+                    )}
                     <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '8px' }} disabled={loading}>
                         {loading ? '⏳ Sedang Login...' : 'Masuk Portal Admin'}
                     </button>
